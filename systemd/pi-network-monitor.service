@@ -1,0 +1,15 @@
+[Unit]
+Description=Pi Network Monitor
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+WorkingDirectory=/opt/pi-network-monitor
+ExecStart=/usr/bin/npm start
+Restart=always
+RestartSec=10
+User=pi
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=multi-user.target

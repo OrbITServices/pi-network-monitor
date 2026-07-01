@@ -1,0 +1,19 @@
+{
+  "name": "pi-network-monitor",
+  "version": "1.0.0",
+  "description": "Lightweight Raspberry Pi network monitor with discovery, device selection and alerts.",
+  "private": true,
+  "scripts": {
+    "start": "node app.js",
+    "dev": "NODE_ENV=development node app.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.9.1",
+    "dotenv": "^16.4.7",
+    "ejs": "^3.1.10",
+    "express": "^4.21.2",
+    "express-ejs-layouts": "^2.5.1",
+    "nodemailer": "^6.9.16",
+    "ping": "^0.4.4"
+  }
+}

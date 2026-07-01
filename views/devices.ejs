@@ -1,0 +1,67 @@
+<%- include('partials/header', { title: 'Devices' }) %>
+
+<% if (message) { %><div class="notice"><%= message %></div><% } %>
+
+<section class="panel">
+  <div class="panel-title">
+    <h2>Discovery</h2>
+    <form method="post" action="/devices/discover">
+      <button class="button" type="submit">Scan Network</button>
+    </form>
+  </div>
+  <p>Discovery uses <code>arp-scan --localnet</code>. Best results are from a wired Pi on the same LAN/VLAN.</p>
+</section>
+
+<section class="panel">
+  <h2>Add Device Manually</h2>
+  <form method="post" action="/devices/add" class="grid-form">
+    <input name="name" placeholder="Name, e.g. Reception Printer">
+    <input name="ip" placeholder="IP address, e.g. 192.168.1.45" required>
+    <select name="check_type">
+      <option value="ping">Ping</option>
+      <option value="tcp">TCP Port</option>
+    </select>
+    <input name="check_port" placeholder="Port, e.g. 443">
+    <button class="button" type="submit">Add & Monitor</button>
+  </form>
+</section>
+
+<section class="panel">
+  <h2>Devices</h2>
+  <table>
+    <thead><tr><th>Monitor</th><th>Status</th><th>Name</th><th>IP</th><th>MAC</th><th>Vendor</th><th>Check</th><th>Actions</th></tr></thead>
+    <tbody>
+      <% devices.forEach(d => { %>
+        <tr>
+          <td>
+            <form method="post" action="/devices/<%= d.id %>/toggle">
+              <button class="small <%= d.monitored ? 'on' : '' %>" type="submit"><%= d.monitored ? 'On' : 'Off' %></button>
+            </form>
+          </td>
+          <td><span class="badge <%= d.status %>"><%= d.status %></span></td>
+          <td>
+            <form method="post" action="/devices/<%= d.id %>/update" class="inline-form">
+              <input name="name" value="<%= d.name || '' %>">
+          </td>
+          <td><%= d.ip %></td>
+          <td><%= d.mac || '-' %></td>
+          <td><%= d.vendor || '-' %></td>
+          <td>
+              <select name="check_type">
+                <option value="ping" <%= d.check_type === 'ping' ? 'selected' : '' %>>Ping</option>
+                <option value="tcp" <%= d.check_type === 'tcp' ? 'selected' : '' %>>TCP</option>
+              </select>
+              <input class="port" name="check_port" value="<%= d.check_port || '' %>" placeholder="Port">
+          </td>
+          <td class="actions">
+              <button class="small" type="submit">Save</button>
+            </form>
+            <form method="post" action="/devices/<%= d.id %>/delete" onsubmit="return confirm('Delete this device?')">
+              <button class="small danger-button" type="submit">Delete</button>
+            </form>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</section>

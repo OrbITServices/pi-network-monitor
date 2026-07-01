@@ -1,0 +1,23 @@
+<%- include('partials/header', { title: 'Alerts' }) %>
+
+<section class="panel">
+  <div class="panel-title">
+    <h2>Alert History</h2>
+    <form method="post" action="/alerts/clear" onsubmit="return confirm('Clear all alerts?')">
+      <button class="button secondary" type="submit">Clear</button>
+    </form>
+  </div>
+
+  <% if (!alerts.length) { %>
+    <p>No alerts yet.</p>
+  <% } %>
+
+  <% alerts.forEach(a => { %>
+    <div class="alert <%= a.type %>">
+      <strong><%= a.type %></strong>
+      <span><%= a.name || a.ip || 'Unknown device' %></span>
+      <small><%= a.created_at %> · email <%= a.emailed ? 'sent' : 'not sent' %></small>
+      <p><%= a.message %></p>
+    </div>
+  <% }) %>
+</section>

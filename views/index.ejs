@@ -1,0 +1,47 @@
+<%- include('partials/header', { title: 'Dashboard' }) %>
+
+<section class="cards">
+  <div class="card"><span>Total devices</span><strong><%= stats.total %></strong></div>
+  <div class="card"><span>Monitored</span><strong><%= stats.monitored %></strong></div>
+  <div class="card ok"><span>Online</span><strong><%= stats.online %></strong></div>
+  <div class="card danger"><span>Offline</span><strong><%= stats.offline %></strong></div>
+</section>
+
+<section class="panel">
+  <div class="panel-title">
+    <h2>Monitored Devices</h2>
+    <a class="button" href="/devices">Manage devices</a>
+  </div>
+  <table>
+    <thead><tr><th>Status</th><th>Name</th><th>IP</th><th>Check</th><th>Last seen</th></tr></thead>
+    <tbody>
+      <% devices.filter(d => d.monitored).forEach(d => { %>
+        <tr>
+          <td><span class="badge <%= d.status %>"><%= d.status %></span></td>
+          <td><%= d.name || d.ip %></td>
+          <td><%= d.ip %></td>
+          <td><%= d.check_type %><%= d.check_port ? ':' + d.check_port : '' %></td>
+          <td><%= d.last_seen || '-' %></td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</section>
+
+<section class="panel">
+  <div class="panel-title">
+    <h2>Recent Alerts</h2>
+    <a class="button secondary" href="/alerts">View all</a>
+  </div>
+  <% if (!alerts.length) { %>
+    <p>No alerts yet.</p>
+  <% } %>
+  <% alerts.forEach(a => { %>
+    <div class="alert <%= a.type %>">
+      <strong><%= a.type %></strong>
+      <span><%= a.name || a.ip || 'Unknown device' %></span>
+      <small><%= a.created_at %></small>
+      <p><%= a.message %></p>
+    </div>
+  <% }) %>
+</section>

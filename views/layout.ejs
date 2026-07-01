@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title><%= title %> - <%= settings.site_name || 'Pi Network Monitor' %></title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="logo">●</div>
+      <div>
+        <strong><%= settings.site_name || 'Pi Network Monitor' %></strong>
+        <span>Network Monitor</span>
+      </div>
+    </div>
+    <nav>
+      <a href="/">Dashboard</a>
+      <a href="/devices">Devices</a>
+      <a href="/alerts">Alerts</a>
+      <a href="/settings">Settings</a>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <%- body %>
+  </main>
+</body>
+</html>
