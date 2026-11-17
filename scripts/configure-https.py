@@ -4,7 +4,11 @@ import os, sys, re, subprocess, pathlib, shutil, tempfile, datetime
 BASE=pathlib.Path('/etc/caddy')
 CONFIG=BASE/'Caddyfile'
 def run(args):
-    subprocess.run(args, check=True, timeout=45)
+    result = subprocess.run(args, capture_output=True, text=True, timeout=45)
+    if result.returncode:
+        lines = (result.stderr or result.stdout or '').splitlines()
+        important = [line for line in lines if 'error' in line.lower() or 'failed' in line.lower()]
+        raise RuntimeError(' | '.join((important or lines)[-4:])[-1200:] or 'Command failed')
 def main():
     if os.geteuid()!=0 or len(sys.argv)!=3: raise ValueError('root and exactly two arguments required')
     mode,host=sys.argv[1:]
@@ -34,6 +38,7 @@ def main():
         f.write(content)
         staged=pathlib.Path(f.name)
     try:
+        run(['/usr/bin/caddy','fmt','--overwrite',str(staged)])
         run(['/usr/bin/caddy','validate','--config',str(staged),'--adapter','caddyfile'])
         backup=None
         if CONFIG.exists():
