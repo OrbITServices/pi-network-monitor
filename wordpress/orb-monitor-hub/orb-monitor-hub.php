@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Orb Monitor Hub
  * Description: Receives network monitoring snapshots from Raspberry Pi agents and shows a central dashboard.
- * Version: 0.2.1
+ * Version: 0.2.2
  * Requires PHP: 7.4
  * Author: Orb IT Services
  * Text Domain: orb-monitor-hub
@@ -10,7 +10,7 @@
 if (!defined('ABSPATH')) { exit; }
 
 final class Orb_Monitor_Hub {
-    const VERSION = '0.2.1';
+    const VERSION = '0.2.2';
     const API_NS = 'orb-monitor/v1';
     private static function table($name) { global $wpdb; return $wpdb->prefix . 'orbmon_' . $name; }
     public static function activate() {
@@ -150,7 +150,8 @@ final class Orb_Monitor_Hub {
         if ($action === 'add_site') {
             $name = substr(sanitize_text_field(wp_unslash($_POST['site_name'] ?? '')), 0, 120);
             $key = sanitize_key(wp_unslash($_POST['site_key'] ?? ''));
-            if (!$name || !$key) { return '<div class="notice notice-error"><p>Enter a name and site key.</p></div>'; }
+            if (!$name) { return '<div class="notice notice-error"><p>Enter a site name.</p></div>'; }
+            if (!$key) { $key = 'pi-' . bin2hex(random_bytes(8)); }
             $token = bin2hex(random_bytes(32));
             $ok = $wpdb->insert(self::table('sites'), array('name'=>$name, 'site_key'=>$key,
                 'token_hash'=>hash('sha256', $token), 'created_at'=>current_time('mysql', true)), array('%s','%s','%s','%s'));
@@ -199,7 +200,7 @@ final class Orb_Monitor_Hub {
         }
         echo '</tbody></table><h2>Add a Pi site</h2><form method="post">';
         wp_nonce_field('orbmon_admin');
-        echo '<input type="hidden" name="orbmon_action" value="add_site"><p><label>Site name <input type="text" name="site_name" required placeholder="Client office"></label> <label>Site key <input type="text" name="site_key" required pattern="[a-z0-9_-]+" placeholder="client-office"></label> <button class="button button-primary">Create site and API key</button></p></form>';
+        echo '<input type="hidden" name="orbmon_action" value="add_site"><p><label>Site name <input type="text" name="site_name" required placeholder="Client office"></label> <label>Site key <input type="text" id="orbmon-site-key" name="site_key" pattern="[a-z0-9_-]+" placeholder="Auto-generated if blank"> <button type="button" class="button" onclick="(function(){var b=new Uint8Array(8);crypto.getRandomValues(b);document.getElementById(\'orbmon-site-key\').value=\'pi-\'+Array.from(b,x=>x.toString(16).padStart(2,\'0\')).join(\'\')})()">Generate Site Key</button></label> <button class="button button-primary">Create site and API key</button></p><p class="description">Leave the site key blank to generate one automatically. The API key is always generated securely on the server and displayed only once.</p></form>';
         echo '<h2>Notifications</h2><form method="post">'; wp_nonce_field('orbmon_admin');
         echo '<input type="hidden" name="orbmon_action" value="save_settings"><label><input type="checkbox" name="email_alerts" value="1" ' . checked(get_option('orbmon_email_alerts'), '1', false) . '> Email configured recipients on device status changes</label> <button class="button">Save</button></form>';
         echo '<p>Only WordPress administrators can see this dashboard. The optional shortcode <code>[orb_monitor_dashboard]</code> is also administrator-only.</p></div>';
