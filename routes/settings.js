@@ -90,7 +90,8 @@ router.post('/advanced', requireWpPassword, (req, res) => {
   }
 });
 router.post('/advanced/https', requireWpPassword, (req, res) => {
-  if (req.wpLogin.mustChange) return res.redirect('/settings/advanced?message=' + encodeURIComponent('Change the default administrator password before configuring HTTPS.') + '#https');
+  // Permit initial HTTPS bootstrap with default credentials; keep the warning in the GUI.
+  // Restrict access to a trusted LAN and change the administrator password immediately after testing.
   const mode = String(req.body.https_mode || '');
   const hostname = String(req.body.https_hostname || '').trim().toLowerCase();
   if (!['local','public'].includes(mode) || hostname.length > 253 ||
