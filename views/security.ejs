@@ -1,18 +1,43 @@
 <%- include('partials/header', { title: 'Security Status' }) %>
 <section class="panel">
-  <h2>Security Status</h2>
-  <p>Read-only checks from this Raspberry Pi. These checks support maintenance but do not certify Cyber Essentials compliance.</p>
+  <h2>Security Status & Versions</h2>
+  <p>Live, read-only diagnostics. This does not certify Cyber Essentials compliance. Refresh the page to check again.</p>
   <table><tbody>
     <tr><th>Operating system</th><td><%= security.os %></td></tr>
-    <tr><th>Node.js</th><td><%= security.node %></td></tr>
-    <tr><th>Caddy HTTPS service</th><td><%= security.caddy %></td></tr>
-    <tr><th>Automatic OS security updates</th><td><%= security.unattended ? 'Package installed (policy not verified)' : 'Not installed' %></td></tr>
+    <tr><th>Orb Monitor application</th><td><%= security.appVersion %></td></tr>
+    <tr><th>Node.js / npm</th><td><%= security.node %> / <%= security.npm %></td></tr>
+    <tr><th>Python / SQLite</th><td><%= security.python %> / <%= security.sqlite %></td></tr>
+    <tr><th>Caddy version / service</th><td><%= security.caddyVersion %> / <%= security.caddy %></td></tr>
     <tr><th>Pending APT upgrades (cached)</th><td><%= security.pending %></td></tr>
     <tr><th>Reboot required</th><td><%= security.reboot ? 'Yes' : 'No' %></td></tr>
-    <tr><th>SSH service</th><td><%= security.ssh %></td></tr>
-    <tr><th>UFW firewall service</th><td><%= security.firewall %></td></tr>
-    <tr><th>Last checked</th><td><%= security.checkedAt %></td></tr>
+    <tr><th>Firewall (UFW service)</th><td><%= security.firewall %></td></tr>
   </tbody></table>
-  <p>Certificate trust, expiry, firewall rules, update age, package vulnerabilities and SSH hardening need separate verification.</p>
+</section>
+<section class="panel">
+  <h2>Automatic OS Updates</h2>
+  <p>These settings control Debian operating-system package updates, not GitHub application releases. Values of 1 mean daily.</p>
+  <table><tbody>
+    <tr><th>unattended-upgrades installed</th><td><%= security.unattended ? 'Yes' : 'No' %></td></tr>
+    <tr><th>Update package lists</th><td><%= security.autoLists %></td></tr>
+    <tr><th>Install unattended updates</th><td><%= security.autoUpgrade %></td></tr>
+    <tr><th>Last recorded package-list refresh</th><td><%= security.lastUpdate %></td></tr>
+  </tbody></table>
+  <p>Automatic updates are enabled by the installer. The exact allowed repositories, recent update success, reboot policy and package security status still require verification.</p>
+</section>
+<section class="panel">
+  <h2>SSH Configuration</h2>
+  <p>Effective OpenSSH server settings reported by <code>sshd -T</code>. These are read-only to avoid accidentally locking you out of the Pi.</p>
+  <% if (security.sshEffectiveAvailable) { %>
+  <table><tbody>
+    <tr><th>SSH service</th><td><%= security.ssh %></td></tr>
+    <% [['port','SSH port'],['passwordauthentication','Password login'],['pubkeyauthentication','SSH key login'],['permitrootlogin','Root login'],['kbdinteractiveauthentication','Keyboard-interactive login'],['maxauthtries','Maximum authentication attempts'],['x11forwarding','X11 forwarding']].forEach(([key,label]) => { %>
+      <tr><th><%= label %></th><td><%= security.sshValues[key] || 'Unknown' %></td></tr>
+    <% }) %>
+  </tbody></table>
+  <% } else { %><p>Unable to read the effective SSH configuration. Check that OpenSSH server is installed.</p><% } %>
+  <p>For secure key-only access, first verify that your SSH key works from another terminal before disabling password login. Root login should normally be disabled. SSH changes require administrative access and a validated configuration.</p>
+</section>
+<section class="panel">
+  <p><strong>Last checked:</strong> <%= security.checkedAt %></p>
   <p><a class="button" href="/settings/security">Refresh checks</a> <a href="/settings">Back to Settings</a></p>
 </section>
