@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Orb Monitor Hub
  * Description: Receives network monitoring snapshots from Raspberry Pi agents and shows a central dashboard.
- * Version: 0.2.0
+ * Version: 0.2.1
  * Requires PHP: 7.4
  * Author: Orb IT Services
  * Text Domain: orb-monitor-hub
@@ -10,7 +10,7 @@
 if (!defined('ABSPATH')) { exit; }
 
 final class Orb_Monitor_Hub {
-    const VERSION = '0.2.0';
+    const VERSION = '0.2.1';
     const API_NS = 'orb-monitor/v1';
     private static function table($name) { global $wpdb; return $wpdb->prefix . 'orbmon_' . $name; }
     public static function activate() {
@@ -65,6 +65,23 @@ final class Orb_Monitor_Hub {
         });
         add_action('admin_menu', function() {
             add_menu_page('Orb Monitor', 'Orb Monitor', 'manage_options', 'orb-monitor', array(__CLASS__, 'admin_page'), 'dashicons-networking', 65);
+        });
+        // Register both admin pages together, with the same capability.
+        add_action('admin_menu', function() {
+            add_submenu_page('orb-monitor', 'Dashboard', 'Dashboard', 'manage_options',
+                'orb-monitor', array(__CLASS__, 'admin_page'));
+            add_submenu_page('orb-monitor', 'Alerts & Wallboard', 'Alerts & Wallboard', 'manage_options',
+                'orb-monitor-sharing', array('Orb_Monitor_Sharing', 'settings_page'));
+        }, 20);
+        // Some sites rewrite custom admin menu URLs to /wp-admin/{slug}.
+        // Restore WordPress's canonical admin.php?page=... links after menus are rendered.
+        add_action('admin_footer', function() {
+            if (!current_user_can('manage_options')) { return; }
+            $dashboard = admin_url('admin.php?page=orb-monitor');
+            $sharing = admin_url('admin.php?page=orb-monitor-sharing');
+            echo '<script>(function(){var links=' . wp_json_encode(array(
+                'orb-monitor' => $dashboard, 'orb-monitor-sharing' => $sharing
+            )) . ';document.querySelectorAll("#adminmenu a").forEach(function(a){var href=a.getAttribute("href")||"";Object.keys(links).forEach(function(slug){if(href===slug||href.endsWith("/"+slug)||href.indexOf("page="+slug)!==-1){a.setAttribute("href",links[slug]);}});});})();</script>';
         });
         add_shortcode('orb_monitor_dashboard', array(__CLASS__, 'shortcode'));
     }
@@ -160,6 +177,7 @@ final class Orb_Monitor_Hub {
         $devices = $wpdb->get_results('SELECT * FROM ' . self::table('devices') . ' ORDER BY site_id, name');
         $events = $wpdb->get_results('SELECT e.*, s.name AS site_name FROM ' . self::table('events') . ' e JOIN ' . self::table('sites') . ' s ON s.id=e.site_id ORDER BY e.id DESC LIMIT 50');
         echo '<div class="wrap"><h1>Orb Monitor Hub</h1>' . $notice;
+        echo '<p><a class="button button-secondary" href="' . esc_url(admin_url('admin.php?page=orb-monitor-sharing')) . '">Alerts &amp; Wallboard settings</a></p>';
         echo '<p>Pi reporting endpoint: <code>' . esc_html(rest_url(self::API_NS . '/report')) . '</code></p>';
         echo '<h2>Sites</h2><table class="widefat striped"><thead><tr><th>Site</th><th>Site key</th><th>Heartbeat</th><th>Devices</th><th>API key</th></tr></thead><tbody>';
         foreach ($sites as $site) {
