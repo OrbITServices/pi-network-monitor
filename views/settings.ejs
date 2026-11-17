@@ -6,10 +6,15 @@
   <h2>General</h2>
   <form method="post" action="/settings" class="settings-form">
     <label>Site Name<input name="site_name" value="<%= settings.site_name || '' %>"></label>
+    <p class="description">A friendly name for this Pi or location, such as Main Office. Used in local alert emails.</p>
     <label>Subnet<input name="subnet" value="<%= settings.subnet || '' %>"></label>
+    <p class="description">The network range, for example 192.168.1.0/24. Network discovery currently scans the Pi's local interface using arp-scan --localnet; this field does not enable scanning other VLANs.</p>
     <label>Check Interval Seconds<input name="check_interval_seconds" value="<%= settings.check_interval_seconds || '60' %>"></label>
+    <p class="description">How frequently local device checks start. Example: 10 means approximately every 10 seconds. Recommended: 10 seconds. Restart the Pi Monitor service after changing this setting.</p>
     <label>Fail Threshold<input name="fail_threshold" value="<%= settings.fail_threshold || '3' %>"></label>
+    <p class="description">Consecutive failed checks before a device is marked offline and an offline alert is sent. Example: 3 at a 10-second interval means approximately 30 seconds. Recommended: 3 to avoid false alarms.</p>
     <label>Recovery Threshold<input name="recovery_threshold" value="<%= settings.recovery_threshold || '1' %>"></label>
+    <p class="description">Consecutive successful checks required before a recovery alert is sent. Example: 2 requires two successful checks. Recommended: 2. Currently the device status changes to online after the first success; this threshold controls the recovery alert.</p>
 
     <h2>Email</h2>
     <label>SMTP Host<input name="smtp_host" value="<%= settings.smtp_host || '' %>"></label>
