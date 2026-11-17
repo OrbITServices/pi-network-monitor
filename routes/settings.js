@@ -4,6 +4,7 @@ const { getSettings, setSetting } = require('../services/db');
 const { sendTestEmail, parseRecipients } = require('../services/mailer');
 const login = require('../services/wp-login');
 const wordpress = require('../services/wordpress-reporting');
+const { execFile } = require('child_process');
 
 router.get('/', (req, res) => {
   res.render('settings', { title: 'Settings', settings: getSettings(), message: req.query.message || '' });
@@ -85,6 +86,24 @@ router.post('/advanced', requireWpPassword, (req, res) => {
   } catch (err) {
     res.redirect('/settings/advanced?message=' + encodeURIComponent(err.message + ' No settings were saved.'));
   }
+});
+router.post('/advanced/https', requireWpPassword, (req, res) => {
+  if (req.wpLogin.mustChange) return res.redirect('/settings/advanced?message=' + encodeURIComponent('Change the default administrator password before configuring HTTPS.') + '#https');
+  const mode = String(req.body.https_mode || '');
+  const hostname = String(req.body.https_hostname || '').trim().toLowerCase();
+  if (!['local','public'].includes(mode) || hostname.length > 253 ||
+      !/^[a-z0-9][a-z0-9.-]*[a-z0-9]$/.test(hostname) ||
+      hostname.split('.').some(label => !label || label.length > 63 || label.startsWith('-') || label.endsWith('-')) ||
+      (mode === 'local' && !hostname.endsWith('.local')) ||
+      (mode === 'public' && (hostname.endsWith('.local') || !hostname.includes('.')))) {
+    return res.redirect('/settings/advanced?message=' + encodeURIComponent('Invalid HTTPS mode or hostname.') + '#https');
+  }
+  execFile('/usr/bin/sudo', ['-n','/usr/local/libexec/orb-monitor/configure-https.py', mode, hostname],
+    { timeout: 65000, maxBuffer: 20000 }, (err, stdout, stderr) => {
+      const msg = err ? 'HTTPS configuration failed: ' + String(stderr || err.message).slice(0, 350)
+                      : 'HTTPS proxy configured for https://' + hostname + '. ' + String(stdout).slice(0, 200);
+      res.redirect('/settings/advanced?message=' + encodeURIComponent(msg) + '#https');
+    });
 });
 function renderWp(req, res, message, status = 200) {
   res.status(status).render('wordpress-settings', {
