@@ -1,42 +1,20 @@
-<%- include('partials/header', { title: 'Settings' }) %>
-
+<%- include('partials/header', { title: 'Monitoring Settings' }) %>
 <% if (message) { %><div class="notice"><%= message %></div><% } %>
-
-<section class="panel"><p><a class="button" href="/settings/wordpress">Configure WordPress Reporting</a> <a class="button" href="/settings/security">Security Status</a></p>
-  <h2>General</h2>
+<section class="panel">
+  <h2>Local Monitoring</h2>
+  <p>Adjust device monitoring without the advanced administrator login. Network, email, HTTPS, WordPress and security settings are kept under Advanced Settings.</p>
   <form method="post" action="/settings" class="settings-form">
-    <label>Site Name<input name="site_name" value="<%= settings.site_name || '' %>"></label>
-    <p class="description">A friendly name for this Pi or location, such as Main Office. Used in local alert emails.</p>
-    <label>Subnet<input name="subnet" value="<%= settings.subnet || '' %>"></label>
-    <p class="description">The network range, for example 192.168.1.0/24. Network discovery currently scans the Pi's local interface using arp-scan --localnet; this field does not enable scanning other VLANs.</p>
-    <label>Check Interval Seconds<input name="check_interval_seconds" value="<%= settings.check_interval_seconds || '60' %>"></label>
-    <p class="description">How frequently local device checks start. Example: 10 means approximately every 10 seconds. Recommended: 10 seconds. Restart the Pi Monitor service after changing this setting.</p>
-    <label>Fail Threshold<input name="fail_threshold" value="<%= settings.fail_threshold || '3' %>"></label>
-    <p class="description">Consecutive failed checks before a device is marked offline and an offline alert is sent. Example: 3 at a 10-second interval means approximately 30 seconds. Recommended: 3 to avoid false alarms.</p>
-    <label>Recovery Threshold<input name="recovery_threshold" value="<%= settings.recovery_threshold || '1' %>"></label>
-    <p class="description">Consecutive successful checks required before a recovery alert is sent. Example: 2 requires two successful checks. Recommended: 2. Currently the device status changes to online after the first success; this threshold controls the recovery alert.</p>
-
-    <h2>Email</h2>
-    <label>SMTP Host<input name="smtp_host" value="<%= settings.smtp_host || '' %>"></label>
-    <label>SMTP Port<input name="smtp_port" value="<%= settings.smtp_port || '587' %>"></label>
-    <label>SMTP Secure
-      <select name="smtp_secure">
-        <option value="false" <%= settings.smtp_secure !== 'true' ? 'selected' : '' %>>false / STARTTLS</option>
-        <option value="true" <%= settings.smtp_secure === 'true' ? 'selected' : '' %>>true / SSL</option>
-      </select>
-    </label>
-    <label>SMTP User<input name="smtp_user" value="<%= settings.smtp_user || '' %>"></label>
-    <label>SMTP Password<input type="password" name="smtp_pass" value="<%= settings.smtp_pass || '' %>"></label>
-    <label>Alert From<input name="alert_from" value="<%= settings.alert_from || '' %>"></label>
-    <label>Alert To — Email Recipients
-      <textarea name="alert_to" rows="4" placeholder="alerts@example.com&#10;support@example.com"><%= (settings.alert_to || '').replace(/[,;]\s*/g, '\n') %></textarea>
-    </label>
-    <p class="description">You can send local device offline and recovery alerts to multiple email addresses. Enter <strong>one email address per line</strong>, or separate addresses with <strong>commas or semicolons</strong>. For example: <code>support@example.com, manager@example.com</code>. All listed recipients receive the same alert. Save Settings, then click <strong>Send Test Email</strong> to check delivery to everyone.</p>
-
-    <button class="button" type="submit">Save Settings</button>
+    <label>Check Interval Seconds<input name="check_interval_seconds" type="number" min="1" value="<%= settings.check_interval_seconds || '10' %>"></label>
+    <p class="description">How often monitored devices are checked. Recommended: 10 seconds. Restart the service after changing.</p>
+    <label>Fail Threshold<input name="fail_threshold" type="number" min="1" value="<%= settings.fail_threshold || '3' %>"></label>
+    <p class="description">Number of consecutive failed checks before an offline alert.</p>
+    <label>Recovery Threshold<input name="recovery_threshold" type="number" min="1" value="<%= settings.recovery_threshold || '2' %>"></label>
+    <p class="description">Number of successful checks required before sending a recovery alert.</p>
+    <button class="button" type="submit">Save Monitoring Settings</button>
   </form>
-
-  <form method="post" action="/settings/test-email" class="test-email">
-    <button class="button secondary" type="submit">Send Test Email</button>
-  </form>
+</section>
+<section class="panel">
+  <h2>Advanced Configuration</h2>
+  <p>Administrator login required for network, SMTP alerts, WordPress reporting, HTTPS and security diagnostics.</p>
+  <a class="button" href="/settings/advanced">Open Advanced Settings</a>
 </section>
