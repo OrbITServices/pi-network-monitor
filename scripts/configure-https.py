@@ -20,12 +20,16 @@ def main():
     # Refuse to replace unrelated Caddy configurations.
     marker=BASE/'orb-monitor-managed'
     if CONFIG.exists() and not marker.exists():
-        existing=CONFIG.read_text()
-        # Fresh Debian/Raspberry Pi Caddy installations ship a sample static site.
-        # Replace ONLY that recognisable default, never custom sites or proxies.
-        default_site=(re.search(r'(?m)^\\s*:80\\s*\\{',existing) and
-                      re.search(r'root\\s+\\*\\s+/usr/share/caddy',existing) and
-                      re.search(r'(?m)^\\s*file_server\\s*
+        existing = CONFIG.read_text()
+        # Only replace the stock Caddy welcome-page configuration.
+        stock = (re.search(r'(?m)^\s*:80\s*\{', existing)
+                 and re.search(r'root\s+\*\s+/usr/share/caddy', existing)
+                 and re.search(r'(?m)^\s*file_server\s*$', existing)
+                 and 'reverse_proxy' not in existing
+                 and 'tls ' not in existing
+                 and len(existing) < 10000)
+        if not stock:
+            raise ValueError('Custom Caddyfile detected; refusing to overwrite it.')
     with tempfile.NamedTemporaryFile(mode='w',dir=str(BASE),prefix='.orb-',delete=False) as f:
         f.write(content)
         staged=pathlib.Path(f.name)
