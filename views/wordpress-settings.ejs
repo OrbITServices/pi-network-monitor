@@ -18,9 +18,16 @@
     <label>WordPress website URL<input name="wordpress_url" type="url" required placeholder="https://orbitserv.co.uk" value="<%= wp.wordpress_url %>"></label>
     <label>Site key<input name="site_key" required pattern="[a-z0-9_-]+" value="<%= wp.site_key %>"></label>
     <label>API key<input name="api_key" type="password" autocomplete="new-password" placeholder="<%= wp.configured ? 'Leave blank to keep existing key' : 'Paste API key from WordPress' %>"></label>
+    <label>WordPress reporting interval
+      <select name="interval_seconds">
+        <% [[10,'10 seconds'],[30,'30 seconds'],[60,'1 minute'],[120,'2 minutes'],[300,'5 minutes'],[600,'10 minutes']].forEach(([seconds,label]) => { %>
+          <option value="<%= seconds %>" <%= wp.interval_seconds === seconds ? 'selected' : '' %>><%= label %></option>
+        <% }) %>
+      </select>
+    </label>
     <p><strong>Connection:</strong> <%= wp.configured ? 'Configured' : 'Not configured' %></p>
     <p><strong>Last result:</strong> <%= wp.lastResult.status %><% if (wp.lastResult.at) { %> (<%= wp.lastResult.at %>)<% } %></p>
-    <p>Reporting automatically runs every 60 seconds when configured. Credentials are not displayed after saving.</p>
+    <p>Reporting automatically runs at the selected interval when configured. Local device monitoring is unaffected. Credentials are not displayed after saving.</p>
     <button class="button" type="submit">Save WordPress Configuration</button>
   </form>
   <form method="post" action="/settings/wordpress/test" class="test-email">
