@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { getSettings, setSetting } = require('../services/db');
 const { sendTestEmail } = require('../services/mailer');
-const crypto = require('crypto');
+const login = require('../services/wp-login');
 const wordpress = require('../services/wordpress-reporting');
 
 router.get('/', (req, res) => {
@@ -44,29 +44,51 @@ router.post('/test-email', async (req, res) => {
 });
 
 function requireWpPassword(req, res, next) {
-  const expected = process.env.ORB_WP_SETTINGS_PASSWORD;
-  if (!expected) return res.status(503).send('WordPress configuration is locked. Rerun the installer to generate an admin password.');
   const auth = req.headers.authorization || '';
-  let supplied = '';
+  let username = '', password = '';
   if (auth.startsWith('Basic ')) {
-    try { supplied = Buffer.from(auth.slice(6), 'base64').toString('utf8').split(':').slice(1).join(':'); } catch (_) {}
+    try {
+      const value = Buffer.from(auth.slice(6), 'base64').toString('utf8');
+      const index = value.indexOf(':');
+      username = value.slice(0, index);
+      password = value.slice(index + 1);
+    } catch (_) {}
   }
-  const a = Buffer.from(supplied);
-  const b = Buffer.from(expected);
-  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
+  if (!login.verify(username, password)) {
     res.set('WWW-Authenticate', 'Basic realm="Orb WordPress Settings"');
-    return res.status(401).send('WordPress settings password required.');
+    return res.status(401).send('WordPress settings login required.');
   }
+  res.set('Cache-Control', 'no-store');
+  req.wpLogin = login.ensure();
   next();
 }
+function renderWp(req, res, message, status = 200) {
+  res.status(status).render('wordpress-settings', {
+    title: 'WordPress Reporting', settings: getSettings(),
+    wp: wordpress.publicConfig(), message, mustChange: req.wpLogin.mustChange,
+    loginUsername: req.wpLogin.username
+  });
+}
+router.post('/wordpress/change-login', requireWpPassword, (req, res) => {
+  try {
+    const username = String(req.body.username || '').trim();
+    const password = String(req.body.password || '');
+    if (password !== String(req.body.confirm_password || '')) throw Error('Passwords do not match');
+    login.change(username, password);
+    res.set('WWW-Authenticate', 'Basic realm="Orb WordPress Settings"');
+    res.status(401).send('Login updated. Refresh the page and sign in with your new username and password.');
+  } catch (e) { renderWp(req, res, e.message, 400); }
+});
 router.get('/wordpress', requireWpPassword, (req, res) => {
-  res.render('wordpress-settings', { title: 'WordPress Reporting', settings: getSettings(), wp: wordpress.publicConfig(), message: req.query.message || '' });
+  renderWp(req, res, req.query.message || '');
 });
 router.post('/wordpress', requireWpPassword, (req, res) => {
+  if (req.wpLogin.mustChange) return renderWp(req, res, 'Change the default login before configuring reporting.', 403);
   try { wordpress.save(req.body); res.redirect('/settings/wordpress?message=Configuration saved'); }
-  catch (e) { res.status(400).render('wordpress-settings', { title: 'WordPress Reporting', settings: getSettings(), wp: wordpress.publicConfig(), message: e.message }); }
+  catch (e) { renderWp(req, res, e.message, 400); }
 });
 router.post('/wordpress/test', requireWpPassword, async (req, res) => {
+  if (req.wpLogin.mustChange) return renderWp(req, res, 'Change the default login before testing reporting.', 403);
   const result = await wordpress.send();
   res.redirect('/settings/wordpress?message=' + encodeURIComponent(result.status));
 });
