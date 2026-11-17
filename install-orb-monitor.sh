@@ -155,6 +155,14 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now "$SERVICE_NAME"
 sudo systemctl restart "$SERVICE_NAME"
 
+echo "Installing restricted HTTPS management helper..."
+sudo install -d -m 755 /usr/local/libexec/orb-monitor
+sudo install -o root -g root -m 755 scripts/configure-https.py /usr/local/libexec/orb-monitor/configure-https.py
+# Restrict sudo to this root-owned helper, not the Git working tree.
+printf '%s ALL=(root) NOPASSWD: /usr/local/libexec/orb-monitor/configure-https.py *\n' "$APP_USER" | sudo tee /etc/sudoers.d/orb-monitor-https >/dev/null
+sudo chmod 440 /etc/sudoers.d/orb-monitor-https
+sudo visudo -cf /etc/sudoers.d/orb-monitor-https
+
 echo "[8/8] Checking service..."
 sleep 3
 if ! systemctl is-active --quiet "$SERVICE_NAME"; then
