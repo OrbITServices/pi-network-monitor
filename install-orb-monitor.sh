@@ -130,6 +130,12 @@ APT::Periodic::Unattended-Upgrade "1";
 AUTO
 sudo systemctl enable --now apt-daily.timer apt-daily-upgrade.timer || true
 
+# HTTPS is optional and is not configured by the installer.
+# Keep the setup dashboard reachable until the administrator enables HTTPS.
+HTTPS_READY=false
+if sudo systemctl is-active --quiet caddy 2>/dev/null && curl -ksSf --max-time 4 --resolve "$(hostname).local:443:127.0.0.1" "https://$(hostname).local/health" | grep -q '"ok":true'; then
+  HTTPS_READY=true
+fi
 echo "Configuring UFW safely..."
 # Never reset existing firewall rules. A running SSH session's server port
 # is more reliable than assuming port 22 for a remote upgrade.
@@ -137,6 +143,10 @@ if command -v ufw >/dev/null 2>&1; then
   UFW_STATUS="$(sudo ufw status 2>/dev/null | head -n 1 || true)"
   if [[ "$UFW_STATUS" == "Status: active" ]]; then
     echo "UFW already active; preserving existing rules and policies."
+    if [[ "$HTTPS_READY" != true ]]; then
+      echo "HTTPS not verified; allowing dashboard setup access on TCP 3000."
+      sudo ufw allow 3000/tcp comment 'Pi Monitor setup HTTP'
+    fi
   else
     SSH_PORT=""
     if [[ -n "${SSH_CONNECTION:-}" ]]; then
@@ -150,6 +160,7 @@ if command -v ufw >/dev/null 2>&1; then
     else
       echo "UFW is currently inactive. Detected SSH port: $SSH_PORT"
       echo "Proposed inbound allowances: SSH TCP $SSH_PORT, HTTP TCP 80, HTTPS TCP 443."
+      if [[ "$HTTPS_READY" != true ]]; then echo "Also allow TCP 3000 for dashboard setup."; fi
       echo "Other inbound services may require additional rules. Existing UFW rules will be preserved."
       if [[ -t 0 ]]; then
         read -r -p "Add these rules and enable UFW now? [y/N] " ENABLE_UFW
@@ -161,6 +172,9 @@ if command -v ufw >/dev/null 2>&1; then
         sudo ufw allow "$SSH_PORT/tcp" comment 'SSH'
         sudo ufw allow 80/tcp comment 'HTTP redirect'
         sudo ufw allow 443/tcp comment 'HTTPS'
+        if [[ "$HTTPS_READY" != true ]]; then
+          sudo ufw allow 3000/tcp comment 'Pi Monitor setup HTTP'
+        fi
         sudo ufw default deny incoming
         sudo ufw default allow outgoing
         sudo ufw --force enable
