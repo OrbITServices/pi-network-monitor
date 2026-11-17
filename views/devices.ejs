@@ -14,10 +14,13 @@
 
 <section class="panel">
   <h2>Add Device Manually</h2>
+  <p>For ARP monitoring, enter a MAC address; IP is optional. For Ping or TCP, enter an IP address.</p>
   <form method="post" action="/devices/add" class="grid-form">
     <input name="name" placeholder="Name, e.g. Reception Printer">
-    <input name="ip" placeholder="IP address, e.g. 192.168.1.45" required>
+    <input name="ip" placeholder="IP address (optional for ARP)">
+    <input name="mac" placeholder="MAC address, e.g. aa:bb:cc:dd:ee:ff">
     <select name="check_type">
+      <option value="arp" selected>ARP (MAC address)</option>
       <option value="ping">Ping</option>
       <option value="tcp">TCP Port</option>
     </select>
@@ -48,6 +51,7 @@
           <td><%= d.vendor || '-' %></td>
           <td>
               <select name="check_type">
+                <option value="arp" <%= d.check_type === 'arp' ? 'selected' : '' %>>ARP (MAC)</option>
                 <option value="ping" <%= d.check_type === 'ping' ? 'selected' : '' %>>Ping</option>
                 <option value="tcp" <%= d.check_type === 'tcp' ? 'selected' : '' %>>TCP</option>
               </select>
