@@ -2,7 +2,7 @@
 
 <% if (message) { %><div class="notice"><%= message %></div><% } %>
 
-<section class="panel"><p><a class="button" href="/settings/wordpress">Configure WordPress Reporting</a></p>
+<section class="panel"><p><a class="button" href="/settings/wordpress">Configure WordPress Reporting</a> <a class="button" href="/settings/security">Security Status</a></p>
   <h2>General</h2>
   <form method="post" action="/settings" class="settings-form">
     <label>Site Name<input name="site_name" value="<%= settings.site_name || '' %>"></label>
