@@ -61,7 +61,7 @@ function requireWpPassword(req, res, next) {
   next();
 }
 router.get('/advanced', requireWpPassword, (req, res) => {
-  res.render('advanced-settings', { title: 'Advanced Settings', settings: getSettings(), message: req.query.message || '', mustChange: req.wpLogin.mustChange });
+  res.render('advanced-settings', { title: 'Advanced Settings', settings: getSettings(), message: req.query.message || '', mustChange: req.wpLogin.mustChange, hostname: require('os').hostname() });
 });
 router.post('/advanced', requireWpPassword, (req, res) => {
   const allowed = ['site_name','subnet','smtp_host','smtp_port','smtp_secure','smtp_user','smtp_pass','alert_from','alert_to'];
