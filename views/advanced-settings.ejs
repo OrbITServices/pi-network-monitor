@@ -1,21 +1,34 @@
 <%- include('partials/header', { title: 'Advanced Settings' }) %>
-<div class="advanced-intro"><div><h2>Advanced Configuration</h2><p>Protected administration for network identity, email alerts, integrations and security.</p></div><span class="advanced-lock">🔒 Administrator access</span></div>
-<% if (message) { %><div class="notice"><%= message %></div><% } %>
-<% if (mustChange) { %><div class="notice">The default administrator password is still in use. <a href="/settings/wordpress">Change it before using this interface on an untrusted network.</a></div><% } %>
-<div class="advanced-grid">
-  <a class="advanced-tile" href="/settings/wordpress"><strong>WordPress Reporting</strong><span>API credentials, reporting frequency and administrator password</span></a>
-  <a class="advanced-tile" href="/settings/security"><strong>Security & Versions</strong><span>SSH checks, operating system updates and software versions</span></a>
-  <a class="advanced-tile" href="#https"><strong>HTTPS & Certificates</strong><span>Internal CA, Let's Encrypt or manual certificates</span></a>
-  <a class="advanced-tile" href="#network"><strong>Network & Email</strong><span>Site identity, subnet and alert delivery</span></a>
+<div class="adv-heading">
+ <div><h2>Advanced Settings</h2><p>Manage network, alerts, certificates and integrations in one place.</p></div>
+ <span class="adv-protected">🔒 Protected settings</span>
 </div>
-<section class="panel" id="network">
-  <h2>Network & Email Configuration</h2>
-  <form method="post" action="/settings/advanced" class="settings-form">
+<% if (message) { %><div class="notice" role="status"><%= message %></div><% } %>
+<% if (mustChange) { %><div class="notice">Default administrator password in use. <a href="/settings/wordpress">Change your password</a> before configuring HTTPS.</div><% } %>
+<div class="adv-shell">
+ <div class="adv-tabs" role="tablist" aria-label="Advanced settings sections">
+  <button class="adv-tab" type="button" role="tab" id="tab-network" aria-controls="panel-network" data-tab="network">Network</button>
+  <button class="adv-tab" type="button" role="tab" id="tab-email" aria-controls="panel-email" data-tab="email">Email Alerts</button>
+  <button class="adv-tab" type="button" role="tab" id="tab-https" aria-controls="panel-https" data-tab="https">HTTPS & SSL</button>
+  <button class="adv-tab" type="button" role="tab" id="tab-wordpress" aria-controls="panel-wordpress" data-tab="wordpress">WordPress</button>
+  <button class="adv-tab" type="button" role="tab" id="tab-security" aria-controls="panel-security" data-tab="security">Security</button>
+ </div>
+ <div class="adv-body">
+  <section class="adv-panel" id="panel-network" role="tabpanel" aria-labelledby="tab-network">
+   <div class="adv-section-head"><h3>Network Configuration</h3><p>Set the identity and local network range for this monitor.</p></div>
+   <form method="post" action="/settings/advanced" class="settings-form">
     <h3>Network identity</h3>
     <label>Site Name<input name="site_name" value="<%= settings.site_name || '' %>"></label>
     <p class="description">Friendly location name included in alert emails.</p>
     <label>Subnet<input name="subnet" value="<%= settings.subnet || '' %>"></label>
     <p class="description">For reference, e.g. 192.168.1.0/24. ARP discovery uses the Pi's local interface, not other VLANs.</p>
+
+    <button class="button" type="submit">Save Network Settings</button>
+   </form>
+  </section>
+  <section class="adv-panel" id="panel-email" role="tabpanel" aria-labelledby="tab-email" hidden>
+   <div class="adv-section-head"><h3>Email Alerts</h3><p>Configure SMTP and recipients for offline and recovery notifications.</p></div>
+   <form method="post" action="/settings/advanced" class="settings-form">
     <h3>SMTP alerts</h3>
     <label>SMTP Host<input name="smtp_host" value="<%= settings.smtp_host || '' %>"></label>
     <label>SMTP Port<input name="smtp_port" type="number" min="1" max="65535" value="<%= settings.smtp_port || '587' %>"></label>
@@ -25,12 +38,14 @@
     <label>Alert From<input name="alert_from" value="<%= settings.alert_from || '' %>"></label>
     <label>Alert To — Recipients<textarea name="alert_to" rows="4" placeholder="alerts@example.com&#10;support@example.com"><%= (settings.alert_to || '').replace(/[,;]\s*/g, '\n') %></textarea></label>
     <p class="description">One address per line, or separate addresses with commas or semicolons.</p>
-    <button class="button" type="submit">Save Network & Email Settings</button>
-  </form>
-  <form method="post" action="/settings/advanced/test-email"><button class="button secondary" type="submit">Send Test Email</button></form>
-</section>
-<section class="panel" id="https">
-  <h2>HTTPS & Certificates</h2>
+
+    <button class="button" type="submit">Save Email Settings</button>
+   </form>
+   <form method="post" action="/settings/advanced/test-email" class="adv-secondary-form"><button class="button secondary" type="submit">Send Test Email</button></form>
+  </section>
+  <div class="adv-panel" id="panel-https" role="tabpanel" aria-labelledby="tab-https" hidden>
+<section class="adv-inner">
+  <div class="adv-section-head"><h3>HTTPS & Certificates</h3><p>Configure a secure connection to this Pi.</p></div>
   <p>Choose how this Pi should serve its dashboard securely. The existing administrator login is required to apply changes.</p>
   <form method="post" action="/settings/advanced/https" class="settings-form">
     <label>Certificate mode
@@ -48,6 +63,18 @@
   <p class="description">Manual PEM certificates remain available using <code>bash setup-https.sh</code> over SSH. GUI configuration requires rerunning the updated installer once to install the restricted helper.</p>
   <p class="description"><strong>Note:</strong> HTTPS proxy configuration does not yet close direct HTTP access on port 3000. Restrict that port to trusted management networks until application binding is migrated.</p>
 </section>
+
+  </div>
+  <section class="adv-panel" id="panel-wordpress" role="tabpanel" aria-labelledby="tab-wordpress" hidden>
+   <div class="adv-section-head"><h3>WordPress Reporting</h3><p>Connect to the Orb Monitor Hub, manage API credentials and reporting frequency.</p></div>
+   <div class="adv-feature"><div><strong>WordPress integration</strong><p>Reporting settings and administrator password are managed on the dedicated WordPress configuration page.</p></div><a class="button" href="/settings/wordpress">Configure WordPress</a></div>
+  </section>
+  <section class="adv-panel" id="panel-security" role="tabpanel" aria-labelledby="tab-security" hidden>
+   <div class="adv-section-head"><h3>Security & Versions</h3><p>Inspect SSH settings, OS updates, component versions and outstanding maintenance.</p></div>
+   <div class="adv-feature"><div><strong>Security diagnostics</strong><p>View the Pi's current read-only security checks and software versions.</p></div><a class="button" href="/settings/security">View Security Status</a></div>
+  </section>
+ </div>
+</div>
 <script>
 (function(){
   const mode=document.getElementById('https-mode'),host=document.getElementById('https-hostname'),help=document.getElementById('https-help');
@@ -57,6 +84,32 @@
   });
 })();
 </script>
+
+<script>
+(function(){
+ const tabs=[...document.querySelectorAll('.adv-tab')];
+ const panels=[...document.querySelectorAll('.adv-panel')];
+ const valid=tabs.map(t=>t.dataset.tab);
+ function activate(name,updateHash){
+  if(!valid.includes(name)) name='network';
+  tabs.forEach(t=>{const selected=t.dataset.tab===name;t.classList.toggle('is-active',selected);t.setAttribute('aria-selected',String(selected));t.tabIndex=selected?0:-1;});
+  panels.forEach(p=>{p.hidden=p.id!=='panel-'+name;});
+  if(updateHash) history.replaceState(null,'','#'+name);
+ }
+ tabs.forEach((tab,index)=>{
+  tab.addEventListener('click',()=>activate(tab.dataset.tab,true));
+  tab.addEventListener('keydown',e=>{
+   if(!['ArrowLeft','ArrowRight','Home','End'].includes(e.key)) return;
+   e.preventDefault();
+   const next=e.key==='Home'?0:e.key==='End'?tabs.length-1:(index+(e.key==='ArrowRight'?1:-1)+tabs.length)%tabs.length;
+   tabs[next].focus();activate(tabs[next].dataset.tab,true);
+  });
+ });
+ const initial=location.hash.replace('#','');
+ activate(initial==='https'?'https':valid.includes(initial)?initial:'network',false);
+ window.addEventListener('hashchange',()=>activate(location.hash.slice(1),false));
+})();
+</script>
 <style>
-.advanced-intro{display:flex;justify-content:space-between;align-items:center;gap:1rem;margin:0 0 1.5rem;flex-wrap:wrap}.advanced-intro h2{margin:0 0 .35rem}.advanced-intro p{margin:0;color:#64748b}.advanced-lock{background:#eaf4ff;color:#1253a1;border-radius:99px;padding:.55rem .9rem;font-size:.85rem;font-weight:700}.advanced-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;margin:0 0 1.5rem}.advanced-tile{display:flex;flex-direction:column;gap:.65rem;padding:1.3rem;border:1px solid #dce4ef;border-radius:14px;background:#fff;text-decoration:none;color:#172b4d;box-shadow:0 5px 18px #14233c0a;transition:transform .15s,border-color .15s}.advanced-tile:hover{transform:translateY(-2px);border-color:#3885d4}.advanced-tile span{color:#65758b;font-size:.9rem;line-height:1.5}.advanced-tile strong{font-size:1.05rem}#network,#https{scroll-margin-top:20px}
+.adv-heading{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin:0 0 22px}.adv-heading h2{margin:0 0 6px;font-size:1.5rem}.adv-heading p,.adv-section-head p{margin:0;color:#64748b}.adv-protected{font-size:.82rem;font-weight:650;background:#eaf2ff;color:#245da4;padding:9px 13px;border-radius:999px}.adv-shell{background:#fff;border:1px solid #e2e8f0;border-radius:16px;box-shadow:0 8px 26px rgba(16,35,65,.06);overflow:hidden}.adv-tabs{display:flex;overflow-x:auto;gap:4px;padding:12px 16px 0;border-bottom:1px solid #e2e8f0;background:#f8fafc}.adv-tab{font:inherit;font-weight:650;font-size:.93rem;color:#607087;white-space:nowrap;cursor:pointer;border:0;border-bottom:3px solid transparent;background:transparent;padding:13px 19px;margin-bottom:-1px}.adv-tab:hover{color:#1d4f94;background:#edf4ff}.adv-tab.is-active{color:#1764ba;border-bottom-color:#2676d4;background:#fff}.adv-tab:focus-visible{outline:2px solid #2676d4;outline-offset:-3px}.adv-body{padding:26px 30px 32px;max-width:920px}.adv-panel[hidden]{display:none!important}.adv-section-head{margin-bottom:24px}.adv-section-head h3{margin:0 0 7px;font-size:1.3rem}.adv-body .settings-form{max-width:680px}.adv-body .settings-form label{margin-top:12px}.adv-secondary-form{margin-top:14px}.adv-feature{display:flex;justify-content:space-between;align-items:center;gap:20px;padding:22px;border:1px solid #e2e8f0;border-radius:12px;background:#f8fafc}.adv-feature p{margin:6px 0 0;color:#64748b}.adv-feature .button{white-space:nowrap}@media(max-width:650px){.adv-body{padding:18px}.adv-tabs{padding:8px 8px 0}.adv-tab{padding:12px 13px}.adv-feature{flex-direction:column;align-items:flex-start}}
 </style>
