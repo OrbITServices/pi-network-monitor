@@ -17,6 +17,7 @@
   <section class="adv-panel" id="panel-network" role="tabpanel" aria-labelledby="tab-network">
    <div class="adv-section-head"><h3>Network Configuration</h3><p>Set the identity and local network range for this monitor.</p></div>
    <form method="post" action="/settings/advanced" class="settings-form">
+    <input type="hidden" name="section" value="network">
     <h3>Network identity</h3>
     <label>Site Name<input name="site_name" value="<%= settings.site_name || '' %>"></label>
     <p class="description">Friendly location name included in alert emails.</p>
@@ -29,6 +30,7 @@
   <section class="adv-panel" id="panel-email" role="tabpanel" aria-labelledby="tab-email" hidden>
    <div class="adv-section-head"><h3>Email Alerts</h3><p>Configure SMTP and recipients for offline and recovery notifications.</p></div>
    <form method="post" action="/settings/advanced" class="settings-form">
+    <input type="hidden" name="section" value="email">
     <h3>SMTP alerts</h3>
     <label>SMTP Host<input name="smtp_host" value="<%= settings.smtp_host || '' %>"></label>
     <label>SMTP Port<input name="smtp_port" type="number" min="1" max="65535" value="<%= settings.smtp_port || '587' %>"></label>
