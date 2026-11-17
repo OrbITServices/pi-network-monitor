@@ -84,7 +84,7 @@ async function runChecks() {
 
 function start() {
   const s = getSettings();
-  const interval = Math.max(15, Number(s.check_interval_seconds || 60)) * 1000;
+  const interval = Math.max(2, Number(s.check_interval_seconds || 10)) * 1000;
 
   runChecks();
   timer = setInterval(runChecks, interval);
