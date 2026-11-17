@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Orb Monitor Hub
  * Description: Receives network monitoring snapshots from Raspberry Pi agents and shows a central dashboard.
- * Version: 0.1.0
+ * Version: 0.2.0
  * Requires PHP: 7.4
  * Author: Orb IT Services
  * Text Domain: orb-monitor-hub
@@ -10,7 +10,7 @@
 if (!defined('ABSPATH')) { exit; }
 
 final class Orb_Monitor_Hub {
-    const VERSION = '0.1.0';
+    const VERSION = '0.2.0';
     const API_NS = 'orb-monitor/v1';
     private static function table($name) { global $wpdb; return $wpdb->prefix . 'orbmon_' . $name; }
     public static function activate() {
@@ -117,7 +117,7 @@ final class Orb_Monitor_Hub {
                     'old_status'=>$old->status, 'new_status'=>$status, 'occurred_at'=>$now), array('%d','%s','%s','%s','%s','%s'));
                 $changes++;
                 if (get_option('orbmon_email_alerts') === '1') {
-                    wp_mail(get_option('admin_email'), '[Orb Monitor] ' . $site->name . ': ' . $name . ' ' . $status,
+                    Orb_Monitor_Sharing::notify('[Orb Monitor] ' . $site->name . ': ' . $name . ' ' . $status,
                         'Site: ' . $site->name . "\nDevice: " . $name . "\nPrevious: " . $old->status . "\nCurrent: " . $status . "\nIP: " . $ip);
                 }
             }
@@ -183,7 +183,7 @@ final class Orb_Monitor_Hub {
         wp_nonce_field('orbmon_admin');
         echo '<input type="hidden" name="orbmon_action" value="add_site"><p><label>Site name <input type="text" name="site_name" required placeholder="Client office"></label> <label>Site key <input type="text" name="site_key" required pattern="[a-z0-9_-]+" placeholder="client-office"></label> <button class="button button-primary">Create site and API key</button></p></form>';
         echo '<h2>Notifications</h2><form method="post">'; wp_nonce_field('orbmon_admin');
-        echo '<input type="hidden" name="orbmon_action" value="save_settings"><label><input type="checkbox" name="email_alerts" value="1" ' . checked(get_option('orbmon_email_alerts'), '1', false) . '> Email WordPress administrator on device status changes</label> <button class="button">Save</button></form>';
+        echo '<input type="hidden" name="orbmon_action" value="save_settings"><label><input type="checkbox" name="email_alerts" value="1" ' . checked(get_option('orbmon_email_alerts'), '1', false) . '> Email configured recipients on device status changes</label> <button class="button">Save</button></form>';
         echo '<p>Only WordPress administrators can see this dashboard. The optional shortcode <code>[orb_monitor_dashboard]</code> is also administrator-only.</p></div>';
     }
     public static function shortcode() {
@@ -192,4 +192,5 @@ final class Orb_Monitor_Hub {
     }
 }
 register_activation_hook(__FILE__, array('Orb_Monitor_Hub', 'activate'));
+require_once __DIR__ . '/includes/sharing.php';
 Orb_Monitor_Hub::init();
