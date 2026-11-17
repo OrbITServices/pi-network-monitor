@@ -88,16 +88,11 @@ if [ -f data/monitor.db ]; then
   echo "Database backed up to $BACKUP"
 fi
 if [ -f package-lock.json ]; then npm ci --omit=dev; else npm install --omit=dev; fi
-# The WordPress configuration page is password-protected independently of the local dashboard.
-if ! grep -q '^ORB_WP_SETTINGS_PASSWORD=' .env 2>/dev/null; then
-  WP_PASSWORD="$(python3 -c 'import secrets; print(secrets.token_urlsafe(24))')"
-  printf '\nORB_WP_SETTINGS_PASSWORD=%s\n' "$WP_PASSWORD" >> .env
-  chmod 600 .env
-  echo "IMPORTANT: WordPress GUI configuration password (save it now): $WP_PASSWORD"
-else
-  chmod 600 .env
-  echo "Existing WordPress GUI configuration password retained in .env."
-fi
+# WordPress settings login is stored as a salted hash under data/wp-login.json.
+# Fresh installs start with pimon/pimon and require changing it in the GUI.
+# Existing changed credentials are retained on subsequent updates.
+echo "WordPress settings login on first use: username pimon / password pimon"
+echo "Change these credentials immediately in Settings > Configure WordPress Reporting."
 # The Node app now schedules reporting itself. Disable the legacy timer to avoid duplicates.
 if systemctl list-unit-files orb-pi-reporter.timer --no-legend 2>/dev/null | grep -q '^orb-pi-reporter.timer'; then
   sudo systemctl disable --now orb-pi-reporter.timer || true
@@ -162,5 +157,5 @@ echo "Health check: curl -fsS http://127.0.0.1:3000/health"
 echo "Logs: sudo journalctl -u pi-network-monitor -f"
 echo
 echo "Configure or change WordPress from the Pi dashboard: Settings > Configure WordPress Reporting"
-echo "The WordPress settings page asks for the password generated above (or your existing password)."
+echo "Fresh login: pimon / pimon (must be changed on first use). Existing changed login is retained."
 echo "Installation finished."
