@@ -1,6 +1,17 @@
 <%- include('partials/header', { title: 'WordPress Reporting' }) %>
 <% if (message) { %><div class="notice"><%= message %></div><% } %>
 <section class="panel">
+  <h2>Change Login Details</h2>
+  <% if (mustChange) { %><p><strong>Action required:</strong> You are using the temporary pimon login. Change it before configuring WordPress.</p><% } %>
+  <form method="post" action="/settings/wordpress/change-login" class="settings-form">
+    <label>Username<input name="username" required minlength="3" value="<%= loginUsername %>" autocomplete="username"></label>
+    <label>New password (12 characters minimum)<input type="password" name="password" required minlength="12" autocomplete="new-password"></label>
+    <label>Confirm new password<input type="password" name="confirm_password" required minlength="12" autocomplete="new-password"></label>
+    <button class="button" type="submit">Change Login Details</button>
+  </form>
+  <p>After changing the login, refresh the page and sign in again with the new details.</p>
+</section>
+<section class="panel">
   <h2>WordPress reporting</h2>
   <p>Connect this Pi to the Orb Monitor Hub plugin. This changes only the reporting destination, not your local monitored devices.</p>
   <form method="post" action="/settings/wordpress" class="settings-form">
