@@ -81,6 +81,8 @@ fi
 echo "[4/8] Preparing data and dependencies..."
 mkdir -p data backups
 chmod 700 data backups
+# Existing installs already have customised monitoring settings; preserve them.
+if [ -f data/monitor.db ]; then touch data/.orb-defaults-initialized; fi
 if [ -f data/monitor.db ]; then
   BACKUP="backups/monitor-$(date -u +%Y%m%dT%H%M%SZ).db"
   sqlite3 data/monitor.db ".backup '$BACKUP'"
