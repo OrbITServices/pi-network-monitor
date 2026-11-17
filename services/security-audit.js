@@ -11,12 +11,15 @@ const check=(id,group,label,level,detail,advice)=>({id,group,label,level,detail:
 async function scan(){
  const checks=[],add=(...a)=>checks.push(check(...a));
  const settings=getSettings();
- // sshd -T may require elevated permissions to inspect host keys.
- // Preserve the actual failure rather than reporting four unexplained unknowns.
- let sshError='';
- let ssh=null;
- try { ssh=(await run('/usr/sbin/sshd',['-T'],{timeout:8000,maxBuffer:200000})).stdout.trim(); }
- catch(e) { sshError=(e.stderr||e.message||'sshd -T failed').trim().split('\n').slice(-2).join(' | ').slice(0,250); }
+ // Restricted root-owned helper returns only selected read-only settings.
+ let privileged=null;
+ let inspectError='';
+ try {
+   const output=await run('/usr/bin/sudo',['-n','/usr/local/libexec/orb-monitor/security-readonly.py'],{timeout:12000,maxBuffer:20000});
+   privileged=JSON.parse(output.stdout);
+ } catch(e) { inspectError=(e.stderr||e.message||'helper unavailable').trim().slice(0,180); }
+ const ssh=privileged?.ssh_ok?Object.entries(privileged.ssh||{}).map(([k,v])=>k+' '+v).join('\n'):null;
+ const sshError=privileged&&!privileged.ssh_ok?'sshd -T failed':inspectError||'Security helper not installed; rerun installer';
  const sshMap={};if(ssh)for(const line of ssh.split('\n')){const [k,...v]=line.split(' ');sshMap[k]=v.join(' ')}
  const sshActive=await cmd('/usr/bin/systemctl',['is-active','ssh']);
  add('ssh','Remote access','SSH service',sshActive==='active'?'green':sshActive==='inactive'?'orange':'orange',sshActive||'Unknown','If SSH is required, confirm the service is running.');
@@ -62,17 +65,14 @@ async function scan(){
  add('port3000','Web security','HTTP port 3000 exposed on all interfaces',listeners===null?'orange':public3000?'red':'green',listeners===null?'Cannot inspect listeners':public3000?'Port 3000 bound to all interfaces':'No all-interface port 3000 listener detected','Bind Node to 127.0.0.1 once HTTPS is verified, or restrict port 3000 by firewall.');
  const login=require('./wp-login').ensure();
  add('adminpass','Web security','Default administrator password',login.mustChange?'red':'green',login.mustChange?'Default credentials still enabled':'Changed','Change administrator credentials under WordPress Settings.');
- // UFW is a oneshot service: inactive (dead) is normal even with rules enabled.
- // Read the firewall's configured state without sudo, since status requires root.
- const ufwConfig=read('/etc/ufw/ufw.conf');
- const ufwDefault=read('/etc/default/ufw');
- const ufwEnabled=/^ENABLED=yes\s*$/m.test(ufwConfig);
- const ufwInstalled=fs.existsSync('/usr/sbin/ufw');
- const ufwPolicy=(ufwDefault.match(/^DEFAULT_INPUT_POLICY="?(\w+)"?/m)||[])[1];
+ // Check effective UFW status; its systemd service can be inactive while firewall is active.
+ const ufwState=privileged?.ufw?.status||'unknown';
+ const ufwPolicy=privileged?.ufw?.default||'';
+ const fwGood=ufwState==='active'&&/deny \(incoming\)/i.test(ufwPolicy);
  add('firewall','Network','UFW firewall',
-   !ufwInstalled?'orange':!ufwConfig?'orange':ufwEnabled&&ufwPolicy==='DROP'?'green':'orange',
-   !ufwInstalled?'UFW not installed':!ufwConfig?'UFW configuration not readable':ufwEnabled?'UFW enabled; incoming default '+(ufwPolicy||'unknown')+' (effective rules not verified)':'UFW disabled in configuration',
-   'Verify effective firewall rules with sudo ufw status verbose.');
+   fwGood?'green':'orange',
+   ufwState==='unknown'?'Unable to inspect UFW: '+(inspectError||'Check helper installation'):('UFW '+ufwState+(ufwPolicy?'; '+ufwPolicy:'')),
+   'Enable UFW only after allowing SSH and required services; verify sudo ufw status verbose.');
  const net=await cmd('/usr/bin/ss',['-tlnH']);
  add('listeners','Network','Listening TCP services',net===null?'orange':'green',net===null?'Unable to inspect':'Listening ports inspected','Review listening services and restrict unnecessary access.');
  const disk=fs.statfsSync?(()=>{try{const s=fs.statfsSync('/');return Math.round((1-s.bavail/s.blocks)*100)}catch{return null}})():null;
