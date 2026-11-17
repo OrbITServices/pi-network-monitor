@@ -89,7 +89,14 @@ if [ -f data/monitor.db ]; then
   chmod 600 "$BACKUP"
   echo "Database backed up to $BACKUP"
 fi
-if [ -f package-lock.json ]; then npm ci --omit=dev; else npm install --omit=dev; fi
+# Only use npm ci when the lockfile is tracked by this repository.
+# An untracked/ignored local lockfile may belong to a different dependency version.
+if git ls-files --error-unmatch package-lock.json >/dev/null 2>&1; then
+  npm ci --omit=dev
+else
+  echo "No repository-managed package-lock.json; installing from package.json."
+  npm install --omit=dev --no-package-lock
+fi
 # WordPress settings login is stored as a salted hash under data/wp-login.json.
 # Fresh installs start with pimon/pimon and require changing it in the GUI.
 # Existing changed credentials are retained on subsequent updates.
