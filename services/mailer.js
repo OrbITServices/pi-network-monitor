@@ -1,6 +1,13 @@
 const nodemailer = require('nodemailer');
 const { getSettings } = require('./db');
 
+function parseRecipients(value) {
+  const addresses = String(value || '').split(/[,;\r\n]+/).map(s => s.trim()).filter(Boolean);
+  const invalid = addresses.filter(a => !/^[^\s@,;<>]+@[^\s@,;<>]+\.[^\s@,;<>]+$/.test(a));
+  if (invalid.length) throw new Error('Invalid alert recipient: ' + invalid.join(', '));
+  return [...new Set(addresses.map(a => a.toLowerCase()))];
+}
+
 function getTransport() {
   const s = getSettings();
 
@@ -22,11 +29,13 @@ function getTransport() {
 
 async function sendMail(subject, text) {
   const s = getSettings();
+  const recipients = parseRecipients(s.alert_to);
+  if (!recipients.length) throw new Error('Add at least one alert recipient.');
   const transporter = getTransport();
 
   return transporter.sendMail({
     from: s.alert_from || s.smtp_user,
-    to: s.alert_to,
+    to: recipients.join(', '),
     subject,
     text
   });
@@ -40,4 +49,4 @@ async function sendTestEmail() {
   );
 }
 
-module.exports = { sendMail, sendTestEmail };
+module.exports = { sendMail, sendTestEmail, parseRecipients };
