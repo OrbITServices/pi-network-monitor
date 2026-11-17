@@ -1,0 +1,12 @@
+[Unit]
+Description=Send Orb Pi Monitor status to WordPress every minute
+
+[Timer]
+OnBootSec=1min
+OnUnitInactiveSec=1min
+AccuracySec=10s
+Persistent=true
+Unit=orb-pi-reporter.service
+
+[Install]
+WantedBy=timers.target
