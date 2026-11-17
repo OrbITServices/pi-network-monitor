@@ -22,12 +22,12 @@ def main():
     if CONFIG.exists() and not marker.exists():
         existing = CONFIG.read_text()
         # Only replace the stock Caddy welcome-page configuration.
-        stock = (re.search(r'(?m)^\s*:80\s*\{', existing)
-                 and re.search(r'root\s+\*\s+/usr/share/caddy', existing)
-                 and re.search(r'(?m)^\s*file_server\s*$', existing)
-                 and 'reverse_proxy' not in existing
-                 and 'tls ' not in existing
-                 and len(existing) < 10000)
+        # Ignore commented examples in the packaged Caddyfile, but only accept
+        # the exact active directives used by the default welcome page.
+        active = [line.strip() for line in existing.splitlines()
+                  if line.strip() and not line.lstrip().startswith('#')]
+        stock = (active == [':80 {', 'root * /usr/share/caddy',
+                            'file_server', '}'])
         if not stock:
             raise ValueError('Custom Caddyfile detected; refusing to overwrite it.')
     with tempfile.NamedTemporaryFile(mode='w',dir=str(BASE),prefix='.orb-',delete=False) as f:
