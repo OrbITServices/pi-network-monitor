@@ -99,4 +99,12 @@ router.post('/wordpress/test', requireWpPassword, async (req, res) => {
   const result = await wordpress.send();
   res.redirect('/settings/wordpress?message=' + encodeURIComponent(result.status));
 });
+router.get('/security', requireWpPassword, async (req, res) => {
+  try {
+    const security = await require('../services/security-status').status();
+    res.render('security', { title: 'Security Status', settings: getSettings(), security });
+  } catch (err) {
+    res.status(500).send('Security checks unavailable.');
+  }
+});
 module.exports = router;
