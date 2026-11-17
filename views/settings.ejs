@@ -23,7 +23,10 @@
     <label>SMTP User<input name="smtp_user" value="<%= settings.smtp_user || '' %>"></label>
     <label>SMTP Password<input type="password" name="smtp_pass" value="<%= settings.smtp_pass || '' %>"></label>
     <label>Alert From<input name="alert_from" value="<%= settings.alert_from || '' %>"></label>
-    <label>Alert To<input name="alert_to" value="<%= settings.alert_to || '' %>"></label>
+    <label>Alert To — Email Recipients
+      <textarea name="alert_to" rows="4" placeholder="alerts@example.com&#10;support@example.com"><%= (settings.alert_to || '').replace(/[,;]\s*/g, '\n') %></textarea>
+    </label>
+    <p class="description">You can send local device offline and recovery alerts to multiple email addresses. Enter <strong>one email address per line</strong>, or separate addresses with <strong>commas or semicolons</strong>. For example: <code>support@example.com, manager@example.com</code>. All listed recipients receive the same alert. Save Settings, then click <strong>Send Test Email</strong> to check delivery to everyone.</p>
 
     <button class="button" type="submit">Save Settings</button>
   </form>
