@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { getSettings, setSetting } = require('../services/db');
-const { sendTestEmail } = require('../services/mailer');
+const { sendTestEmail, parseRecipients } = require('../services/mailer');
 const login = require('../services/wp-login');
 const wordpress = require('../services/wordpress-reporting');
 
@@ -10,6 +10,15 @@ router.get('/', (req, res) => {
 });
 
 router.post('/', (req, res) => {
+  if (Object.prototype.hasOwnProperty.call(req.body, 'alert_to')) {
+    try {
+      const recipients = parseRecipients(req.body.alert_to);
+      if (recipients.length > 50) throw Error('Maximum 50 alert recipients.');
+      req.body.alert_to = recipients.join(', ');
+    } catch (err) {
+      return res.redirect('/settings?message=' + encodeURIComponent(err.message + ' No settings were saved.'));
+    }
+  }
   const allowed = [
     'site_name',
     'subnet',
