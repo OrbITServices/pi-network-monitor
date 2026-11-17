@@ -131,15 +131,45 @@ AUTO
 sudo systemctl enable --now apt-daily.timer apt-daily-upgrade.timer || true
 
 echo "Configuring UFW safely..."
-# UFW is installed on fresh and existing installations. Never reset existing rules.
-# Only enable automatically when no custom inbound services are detected.
+# Never reset existing firewall rules. A running SSH session's server port
+# is more reliable than assuming port 22 for a remote upgrade.
 if command -v ufw >/dev/null 2>&1; then
   UFW_STATUS="$(sudo ufw status 2>/dev/null | head -n 1 || true)"
   if [[ "$UFW_STATUS" == "Status: active" ]]; then
     echo "UFW already active; preserving existing rules and policies."
   else
-    echo "UFW installed but not active. Leaving it disabled to avoid disrupting SSH or other services."
-    echo "After reviewing inbound services, allow your SSH port and ports 80/443, then enable UFW."
+    SSH_PORT=""
+    if [[ -n "${SSH_CONNECTION:-}" ]]; then
+      read -r _SSH_CLIENT _SSH_CLIENT_PORT _SSH_SERVER SSH_PORT <<< "$SSH_CONNECTION"
+    fi
+    if [[ ! "$SSH_PORT" =~ ^[0-9]+$ ]] || (( SSH_PORT < 1 || SSH_PORT > 65535 )); then
+      SSH_PORT="$(sudo /usr/sbin/sshd -T 2>/dev/null | awk '$1=="port" {print $2; exit}' || true)"
+    fi
+    if [[ ! "$SSH_PORT" =~ ^[0-9]+$ ]] || (( SSH_PORT < 1 || SSH_PORT > 65535 )); then
+      echo "Unable to determine SSH port. Firewall activation skipped to protect remote access."
+    else
+      echo "UFW is currently inactive. Detected SSH port: $SSH_PORT"
+      echo "Proposed inbound allowances: SSH TCP $SSH_PORT, HTTP TCP 80, HTTPS TCP 443."
+      echo "Other inbound services may require additional rules. Existing UFW rules will be preserved."
+      if [[ -t 0 ]]; then
+        read -r -p "Add these rules and enable UFW now? [y/N] " ENABLE_UFW
+      else
+        ENABLE_UFW=""
+        echo "Non-interactive install: leaving UFW disabled."
+      fi
+      if [[ "${ENABLE_UFW,,}" == "y" || "${ENABLE_UFW,,}" == "yes" ]]; then
+        sudo ufw allow "$SSH_PORT/tcp" comment 'SSH'
+        sudo ufw allow 80/tcp comment 'HTTP redirect'
+        sudo ufw allow 443/tcp comment 'HTTPS'
+        sudo ufw default deny incoming
+        sudo ufw default allow outgoing
+        sudo ufw --force enable
+        sudo ufw status verbose
+        echo "Keep this SSH session open until a second SSH connection succeeds."
+      else
+        echo "UFW remains disabled; run sudo ufw status verbose to review later."
+      fi
+    fi
   fi
 else
   echo "Warning: UFW installation could not be verified."
