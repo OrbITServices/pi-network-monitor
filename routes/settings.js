@@ -3,6 +3,7 @@ const router = express.Router();
 const { getSettings, setSetting } = require('../services/db');
 const { sendTestEmail, parseRecipients } = require('../services/mailer');
 const login = require('../services/wp-login');
+const admin = require('../services/admin-session');
 const wordpress = require('../services/wordpress-reporting');
 const { execFile } = require('child_process');
 
@@ -41,25 +42,28 @@ router.post('/advanced/test-email', requireWpPassword, async (req, res) => {
   }
 });
 
-function requireWpPassword(req, res, next) {
-  const auth = req.headers.authorization || '';
-  let username = '', password = '';
-  if (auth.startsWith('Basic ')) {
-    try {
-      const value = Buffer.from(auth.slice(6), 'base64').toString('utf8');
-      const index = value.indexOf(':');
-      username = value.slice(0, index);
-      password = value.slice(index + 1);
-    } catch (_) {}
-  }
-  if (!login.verify(username, password)) {
-    res.set('WWW-Authenticate', 'Basic realm="Orb WordPress Settings"');
-    return res.status(401).send('WordPress settings login required.');
-  }
-  res.set('Cache-Control', 'no-store');
-  req.wpLogin = login.ensure();
-  next();
+const requireWpPassword = admin.requireAdmin;
+function safeNext(value) {
+  const next=String(value||'');
+  return /^\\/settings\\/(advanced|wordpress|security)(?:[?#].*)?$/.test(next) ? next : '/settings/advanced';
 }
+router.get('/login',(req,res)=>{
+  res.set('Cache-Control','no-store');
+  if(admin.get(req)) return res.redirect(safeNext(req.query.next));
+  res.render('admin-login',{title:'Administrator Login',settings:getSettings(),message:'',next:safeNext(req.query.next)});
+});
+router.post('/login',(req,res)=>{
+  if(!admin.sameOrigin(req)) return res.status(403).send('Invalid request origin.');
+  if(!login.verify(String(req.body.username||''),String(req.body.password||''))) {
+    return res.status(401).render('admin-login',{title:'Administrator Login',settings:getSettings(),message:'Incorrect username or password.',next:safeNext(req.body.next)});
+  }
+  admin.create(req,res);
+  res.redirect(303,safeNext(req.body.next));
+});
+router.post('/logout',requireWpPassword,(req,res)=>{
+  admin.clear(req,res);
+  res.redirect(303,'/settings/login');
+});
 router.get('/advanced', requireWpPassword, (req, res) => {
   res.render('advanced-settings', { title: 'Advanced Settings', settings: getSettings(), message: req.query.message || '', mustChange: req.wpLogin.mustChange, hostname: require('os').hostname() });
 });
@@ -121,8 +125,8 @@ router.post('/wordpress/change-login', requireWpPassword, (req, res) => {
     const password = String(req.body.password || '');
     if (password !== String(req.body.confirm_password || '')) throw Error('Passwords do not match');
     login.change(username, password);
-    res.set('WWW-Authenticate', 'Basic realm="Orb WordPress Settings"');
-    res.status(401).send('Login updated. Refresh the page and sign in with your new username and password.');
+    admin.clear(req,res);
+    res.redirect(303,'/settings/login');
   } catch (e) { renderWp(req, res, e.message, 400); }
 });
 router.get('/wordpress', requireWpPassword, (req, res) => {
