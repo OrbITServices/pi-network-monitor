@@ -88,6 +88,21 @@ if [ -f data/monitor.db ]; then
   echo "Database backed up to $BACKUP"
 fi
 if [ -f package-lock.json ]; then npm ci --omit=dev; else npm install --omit=dev; fi
+# The WordPress configuration page is password-protected independently of the local dashboard.
+if ! grep -q '^ORB_WP_SETTINGS_PASSWORD=' .env 2>/dev/null; then
+  WP_PASSWORD="$(python3 -c 'import secrets; print(secrets.token_urlsafe(24))')"
+  printf '\nORB_WP_SETTINGS_PASSWORD=%s\n' "$WP_PASSWORD" >> .env
+  chmod 600 .env
+  echo "IMPORTANT: WordPress GUI configuration password (save it now): $WP_PASSWORD"
+else
+  chmod 600 .env
+  echo "Existing WordPress GUI configuration password retained in .env."
+fi
+# The Node app now schedules reporting itself. Disable the legacy timer to avoid duplicates.
+if systemctl list-unit-files orb-pi-reporter.timer --no-legend 2>/dev/null | grep -q '^orb-pi-reporter.timer'; then
+  sudo systemctl disable --now orb-pi-reporter.timer || true
+fi
+
 
 echo "[5/8] Setting 10-second monitoring defaults..."
 # The application must support intervals below 15 seconds; this is included in the repository version.
@@ -146,30 +161,6 @@ echo "Local IP(s): $(hostname -I 2>/dev/null || true)"
 echo "Health check: curl -fsS http://127.0.0.1:3000/health"
 echo "Logs: sudo journalctl -u pi-network-monitor -f"
 echo
-read -r -p "Configure optional WordPress reporting now? [y/N] " WP_ANSWER
-if [[ "${WP_ANSWER,,}" == "y" ]]; then
-  python3 "$INSTALL_DIR/integrations/pi-agent/configure.py"
-  sudo tee /etc/systemd/system/orb-pi-reporter.service >/dev/null <<UNIT
-[Unit]
-Description=Orb Pi Monitor outbound WordPress reporter
-After=network-online.target pi-network-monitor.service
-Wants=network-online.target
-
-[Service]
-Type=oneshot
-User=$APP_USER
-Group=$APP_GROUP
-WorkingDirectory=$INSTALL_DIR
-ExecStart=/usr/bin/python3 $INSTALL_DIR/integrations/pi-agent/orb_reporter.py
-NoNewPrivileges=true
-PrivateTmp=true
-UNIT
-  sudo install -m 644 "$INSTALL_DIR/integrations/pi-agent/orb-pi-reporter.timer" /etc/systemd/system/orb-pi-reporter.timer
-  sudo systemctl daemon-reload
-  sudo systemctl enable --now orb-pi-reporter.timer
-  if ! sudo systemctl start orb-pi-reporter.service; then
-    echo "Reporter could not reach WordPress yet. Local monitoring remains active."
-    sudo journalctl -u orb-pi-reporter.service -n 15 --no-pager || true
-  fi
-fi
+echo "Configure or change WordPress from the Pi dashboard: Settings > Configure WordPress Reporting"
+echo "The WordPress settings page asks for the password generated above (or your existing password)."
 echo "Installation finished."
