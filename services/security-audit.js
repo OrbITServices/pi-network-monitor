@@ -66,9 +66,9 @@ async function scan(){
  // Read the firewall's configured state without sudo, since status requires root.
  const ufwConfig=read('/etc/ufw/ufw.conf');
  const ufwDefault=read('/etc/default/ufw');
- const ufwEnabled=/^ENABLED=yes\\s*$/m.test(ufwConfig);
+ const ufwEnabled=/^ENABLED=yes\s*$/m.test(ufwConfig);
  const ufwInstalled=fs.existsSync('/usr/sbin/ufw');
- const ufwPolicy=(ufwDefault.match(/^DEFAULT_INPUT_POLICY="?(\\w+)"?/m)||[])[1];
+ const ufwPolicy=(ufwDefault.match(/^DEFAULT_INPUT_POLICY="?(\w+)"?/m)||[])[1];
  add('firewall','Network','UFW firewall',
    !ufwInstalled?'orange':!ufwConfig?'orange':ufwEnabled&&ufwPolicy==='DROP'?'green':'orange',
    !ufwInstalled?'UFW not installed':!ufwConfig?'UFW configuration not readable':ufwEnabled?'UFW enabled; incoming default '+(ufwPolicy||'unknown')+' (effective rules not verified)':'UFW disabled in configuration',
