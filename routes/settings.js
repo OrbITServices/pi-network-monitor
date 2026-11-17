@@ -4,6 +4,7 @@ const { getSettings, setSetting } = require('../services/db');
 const { sendTestEmail, parseRecipients } = require('../services/mailer');
 const login = require('../services/wp-login');
 const admin = require('../services/admin-session');
+const requireWpPassword = admin.requireAdmin;
 const wordpress = require('../services/wordpress-reporting');
 const { execFile } = require('child_process');
 
@@ -42,10 +43,9 @@ router.post('/advanced/test-email', requireWpPassword, async (req, res) => {
   }
 });
 
-const requireWpPassword = admin.requireAdmin;
 function safeNext(value) {
   const next=String(value||'');
-  return /^\\/settings\\/(advanced|wordpress|security)(?:[?#].*)?$/.test(next) ? next : '/settings/advanced';
+  return /^\/settings\/(advanced|wordpress|security)(?:[?#].*)?$/.test(next) ? next : '/settings/advanced';
 }
 router.get('/login',(req,res)=>{
   res.set('Cache-Control','no-store');
