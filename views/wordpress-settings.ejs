@@ -2,7 +2,7 @@
 <% if (message) { %><div class="notice"><%= message %></div><% } %>
 <section class="panel">
   <h2>Change Login Details</h2>
-  <% if (mustChange) { %><p><strong>Action required:</strong> You are using the temporary pimon login. Change it before configuring WordPress.</p><% } %>
+  <% if (mustChange) { %><p><strong>Default login in use:</strong> The end user can change these details when the Pi is handed over. WordPress reporting can be configured now.</p><% } %>
   <form method="post" action="/settings/wordpress/change-login" class="settings-form">
     <label>Username<input name="username" required minlength="3" value="<%= loginUsername %>" autocomplete="username"></label>
     <label>New password (12 characters minimum)<input type="password" name="password" required minlength="12" autocomplete="new-password"></label>
