@@ -31,11 +31,32 @@
 </section>
 <section class="panel" id="https">
   <h2>HTTPS & Certificates</h2>
-  <p>HTTPS is currently configured using the Pi's <code>setup-https.sh</code> script. The dashboard certificate installer is not yet available; certificate changes need privileged system access and safe rollback.</p>
-  <p>Supported script modes: internal <code>.local</code> CA, public-domain Let's Encrypt HTTP-01, and manually supplied PEM certificates. DNS-01 for internal-only public domains requires a provider integration.</p>
-  <pre>cd /opt/pi-network-monitor
-bash setup-https.sh</pre>
+  <p>Choose how this Pi should serve its dashboard securely. The existing administrator login is required to apply changes.</p>
+  <form method="post" action="/settings/advanced/https" class="settings-form">
+    <label>Certificate mode
+      <select name="https_mode" id="https-mode" required>
+        <option value="local">Internal HTTPS (.local certificate authority)</option>
+        <option value="public">Let's Encrypt (public domain, HTTP-01)</option>
+      </select>
+    </label>
+    <label>Hostname<input name="https_hostname" id="https-hostname" required placeholder="pi-monitor2.local" value="<%= require('os').hostname() %>.local"></label>
+    <p class="description" id="https-help">Local mode creates a certificate using this Pi's internal CA. Management PCs must trust its public CA certificate.</p>
+    <p class="description"><strong>Public domain:</strong> Let's Encrypt HTTP-01 needs public DNS and inbound port 80. For internal-only domains, DNS-01 is not yet available in the GUI.</p>
+    <p class="description"><strong>Existing Caddy setup:</strong> The GUI refuses to replace a Caddyfile it does not manage. This prevents overwriting other hosted services.</p>
+    <button class="button" type="submit" onclick="return confirm('Apply HTTPS configuration to this Pi? Ensure you can still access it via SSH.')">Apply HTTPS Configuration</button>
+  </form>
+  <p class="description">Manual PEM certificates remain available using <code>bash setup-https.sh</code> over SSH. GUI configuration requires rerunning the updated installer once to install the restricted helper.</p>
+  <p class="description"><strong>Note:</strong> HTTPS proxy configuration does not yet close direct HTTP access on port 3000. Restrict that port to trusted management networks until application binding is migrated.</p>
 </section>
+<script>
+(function(){
+  const mode=document.getElementById('https-mode'),host=document.getElementById('https-hostname'),help=document.getElementById('https-help');
+  mode.addEventListener('change',()=>{
+    if(mode.value==='public'){host.value='';host.placeholder='monitor.example.com';help.textContent='Public domain mode uses Let’s Encrypt HTTP-01. Public DNS and inbound port 80 are required.';}
+    else{host.value=<%- JSON.stringify(require('os').hostname()+'.local') %>;host.placeholder='pi-monitor2.local';help.textContent='Internal CA certificate. Trust the Pi’s public root CA on management PCs.';}
+  });
+})();
+</script>
 <style>
 .advanced-intro{display:flex;justify-content:space-between;align-items:center;gap:1rem;margin:0 0 1.5rem;flex-wrap:wrap}.advanced-intro h2{margin:0 0 .35rem}.advanced-intro p{margin:0;color:#64748b}.advanced-lock{background:#eaf4ff;color:#1253a1;border-radius:99px;padding:.55rem .9rem;font-size:.85rem;font-weight:700}.advanced-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;margin:0 0 1.5rem}.advanced-tile{display:flex;flex-direction:column;gap:.65rem;padding:1.3rem;border:1px solid #dce4ef;border-radius:14px;background:#fff;text-decoration:none;color:#172b4d;box-shadow:0 5px 18px #14233c0a;transition:transform .15s,border-color .15s}.advanced-tile:hover{transform:translateY(-2px);border-color:#3885d4}.advanced-tile span{color:#65758b;font-size:.9rem;line-height:1.5}.advanced-tile strong{font-size:1.05rem}#network,#https{scroll-margin-top:20px}
 </style>
