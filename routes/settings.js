@@ -83,12 +83,10 @@ router.get('/wordpress', requireWpPassword, (req, res) => {
   renderWp(req, res, req.query.message || '');
 });
 router.post('/wordpress', requireWpPassword, (req, res) => {
-  if (req.wpLogin.mustChange) return renderWp(req, res, 'Change the default login before configuring reporting.', 403);
   try { wordpress.save(req.body); res.redirect('/settings/wordpress?message=Configuration saved'); }
   catch (e) { renderWp(req, res, e.message, 400); }
 });
 router.post('/wordpress/test', requireWpPassword, async (req, res) => {
-  if (req.wpLogin.mustChange) return renderWp(req, res, 'Change the default login before testing reporting.', 403);
   const result = await wordpress.send();
   res.redirect('/settings/wordpress?message=' + encodeURIComponent(result.status));
 });
