@@ -39,7 +39,7 @@
         <option value="public">Let's Encrypt (public domain, HTTP-01)</option>
       </select>
     </label>
-    <label>Hostname<input name="https_hostname" id="https-hostname" required placeholder="pi-monitor2.local" value="<%= require('os').hostname() %>.local"></label>
+    <label>Hostname<input name="https_hostname" id="https-hostname" required placeholder="pi-monitor2.local" value="<%= hostname %>.local"></label>
     <p class="description" id="https-help">Local mode creates a certificate using this Pi's internal CA. Management PCs must trust its public CA certificate.</p>
     <p class="description"><strong>Public domain:</strong> Let's Encrypt HTTP-01 needs public DNS and inbound port 80. For internal-only domains, DNS-01 is not yet available in the GUI.</p>
     <p class="description"><strong>Existing Caddy setup:</strong> The GUI refuses to replace a Caddyfile it does not manage. This prevents overwriting other hosted services.</p>
@@ -53,7 +53,7 @@
   const mode=document.getElementById('https-mode'),host=document.getElementById('https-hostname'),help=document.getElementById('https-help');
   mode.addEventListener('change',()=>{
     if(mode.value==='public'){host.value='';host.placeholder='monitor.example.com';help.textContent='Public domain mode uses Let’s Encrypt HTTP-01. Public DNS and inbound port 80 are required.';}
-    else{host.value=<%- JSON.stringify(require('os').hostname()+'.local') %>;host.placeholder='pi-monitor2.local';help.textContent='Internal CA certificate. Trust the Pi’s public root CA on management PCs.';}
+    else{host.value=<%- JSON.stringify(hostname+'.local') %>;host.placeholder='pi-monitor2.local';help.textContent='Internal CA certificate. Trust the Pi’s public root CA on management PCs.';}
   });
 })();
 </script>
