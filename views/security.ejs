@@ -1,44 +1,81 @@
 <%- include('partials/header', { title: 'Security Status' }) %>
-<form method="post" action="/settings/logout" style="text-align:right;margin-bottom:14px"><button class="button secondary" type="submit">Log Out</button></form>
+<style>
+.sec-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin:16px 0 24px}
+.sec-tile{background:#111827;border:1px solid #334155;border-radius:12px;padding:18px}
+.sec-tile strong{display:block;font-size:2rem;margin:8px 0}
+.sec-green{color:#4ade80}.sec-orange{color:#fbbf24}.sec-red{color:#fb7185}
+.sec-pill{display:inline-block;padding:5px 11px;border-radius:99px;font-size:.82rem;font-weight:700}
+.sec-pill.green{background:#14532d;color:#bbf7d0}.sec-pill.orange{background:#78350f;color:#fef3c7}.sec-pill.red{background:#7f1d1d;color:#fecaca}
+.sec-findings{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:12px}
+.sec-finding{border:1px solid #334155;background:#0b1222;border-radius:12px;padding:16px}
+.sec-finding h3{margin:10px 0 7px;font-size:1.05rem;color:#f8fafc}
+.sec-finding p{margin:6px 0;color:#cbd5e1;overflow-wrap:anywhere}
+.sec-finding small{color:#94a3b8}
+.sec-alert-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;align-items:end}
+.sec-alert-form label{display:flex;flex-direction:column;gap:8px;color:#cbd5e1}
+.sec-alert-form select,.sec-alert-form input[type=number]{width:100%;padding:10px;background:#020617;border:1px solid #475569;color:#f8fafc;border-radius:8px}
+.sec-alert-form .sec-check{flex-direction:row;align-items:center}
+</style>
+<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px">
+ <p style="color:#94a3b8;margin:0">Read-only security checks · Last checked <%= new Date(audit.checkedAt).toLocaleString('en-GB') %></p>
+ <form method="post" action="/settings/logout"><button class="button secondary" type="submit">Log Out</button></form>
+</div>
+<% if(message){ %><div class="notice" role="status"><%= message %></div><% } %>
+<div class="sec-summary">
+ <div class="sec-tile"><span>Overall status</span><strong class="sec-<%= audit.overall %>"><%= audit.overall==='green'?'Good':audit.overall==='orange'?'Needs work':'Needs fixing' %></strong></div>
+ <div class="sec-tile"><span class="sec-green">Green · Good</span><strong class="sec-green"><%= audit.counts.green %></strong></div>
+ <div class="sec-tile"><span class="sec-orange">Amber · Needs work</span><strong class="sec-orange"><%= audit.counts.orange %></strong></div>
+ <div class="sec-tile"><span class="sec-red">Red · Needs fixing</span><strong class="sec-red"><%= audit.counts.red %></strong></div>
+</div>
 <section class="panel">
-  <h2>Security Status & Versions</h2>
-  <p>Live, read-only diagnostics. This does not certify Cyber Essentials compliance. Refresh the page to check again.</p>
-  <table><tbody>
-    <tr><th>Operating system</th><td><%= security.os %></td></tr>
-    <tr><th>Orb Monitor application</th><td><%= security.appVersion %></td></tr>
-    <tr><th>Node.js / npm</th><td><%= security.node %> / <%= security.npm %></td></tr>
-    <tr><th>Python / SQLite</th><td><%= security.python %> / <%= security.sqlite %></td></tr>
-    <tr><th>Caddy version / service</th><td><%= security.caddyVersion %> / <%= security.caddy %></td></tr>
-    <tr><th>Pending APT upgrades (cached)</th><td><%= security.pending %></td></tr>
-    <tr><th>Reboot required</th><td><%= security.reboot ? 'Yes' : 'No' %></td></tr>
-    <tr><th>Firewall (UFW service)</th><td><%= security.firewall %></td></tr>
-  </tbody></table>
+ <h2>Security checks</h2>
+ <p><%= audit.scope %> <a href="/settings/security">Run checks again</a></p>
+ <% for(const group of [...new Set(audit.checks.map(c=>c.group))]){ %>
+ <h3 style="margin:24px 0 12px"><%= group %></h3>
+ <div class="sec-findings">
+ <% for(const item of audit.checks.filter(c=>c.group===group)){ %>
+ <article class="sec-finding">
+  <span class="sec-pill <%= item.level %>"><%= item.level==='green'?'● Good':item.level==='orange'?'● Needs work':'● Needs fixing' %></span>
+  <h3><%= item.label %></h3>
+  <p><%= item.detail %></p>
+  <% if(item.level!=='green'){ %><small><strong>Recommendation:</strong> <%= item.advice %></small><% } %>
+ </article>
+ <% } %>
+ </div>
+ <% } %>
 </section>
 <section class="panel">
-  <h2>Automatic OS Updates</h2>
-  <p>These settings control Debian operating-system package updates, not GitHub application releases. Values of 1 mean daily.</p>
-  <table><tbody>
-    <tr><th>unattended-upgrades installed</th><td><%= security.unattended ? 'Yes' : 'No' %></td></tr>
-    <tr><th>Update package lists</th><td><%= security.autoLists %></td></tr>
-    <tr><th>Install unattended updates</th><td><%= security.autoUpgrade %></td></tr>
-    <tr><th>Last recorded package-list refresh</th><td><%= security.lastUpdate %></td></tr>
-  </tbody></table>
-  <p>Automatic updates are enabled by the installer. The exact allowed repositories, recent update success, reboot policy and package security status still require verification.</p>
+ <h2>Scheduled security scans & email alerts</h2>
+ <p>Uses the SMTP server and recipients configured under <a href="/settings/advanced#email">Advanced Settings → Email Alerts</a>. Scheduled scans run while the monitor service is running. Choose whether to notify on red findings only, or on amber and red.</p>
+ <form method="post" action="/settings/security/alerts" class="sec-alert-form">
+  <label class="sec-check"><input type="checkbox" name="enabled" <%= alerts.enabled?'checked':'' %>> Enable scheduled security scans and alerts</label>
+  <label>Scan interval
+   <select name="hours">
+    <% for(const [h,name] of [[1,'Every hour'],[6,'Every 6 hours'],[12,'Every 12 hours'],[24,'Daily'],[48,'Every 2 days'],[168,'Weekly']]){ %>
+    <option value="<%= h %>" <%= alerts.hours===h?'selected':'' %>><%= name %></option>
+    <% } %>
+   </select>
+  </label>
+  <label>Email alert threshold
+   <select name="level"><option value="red" <%= alerts.minimum==='red'?'selected':'' %>>Red only</option><option value="orange" <%= alerts.minimum==='orange'?'selected':'' %>>Amber and red</option></select>
+  </label>
+  <label class="sec-check"><input type="checkbox" name="changes_only" <%= alerts.changesOnly?'checked':'' %>> Only email when findings change</label>
+  <button class="button" type="submit">Save Schedule</button>
+ </form>
+ <form method="post" action="/settings/security/test-alert" style="margin-top:16px"><button class="button secondary" type="submit">Run Scan & Send Test Email</button></form>
+ <p style="color:#94a3b8">Last scheduled scan: <%= alerts.lastRun?new Date(alerts.lastRun).toLocaleString('en-GB'):'Not yet run' %> · Last email: <%= alerts.lastSent?new Date(alerts.lastSent).toLocaleString('en-GB'):'None' %></p>
+ <% if(alerts.lastError){ %><p class="sec-red">Last alert error: <%= alerts.lastError %></p><% } %>
+ <p style="color:#94a3b8">A test email reports current amber/red findings regardless of the scheduled alert setting. No email is sent for a clean scheduled scan.</p>
 </section>
 <section class="panel">
-  <h2>SSH Configuration</h2>
-  <p>Effective OpenSSH server settings reported by <code>sshd -T</code>. These are read-only to avoid accidentally locking you out of the Pi.</p>
-  <% if (security.sshEffectiveAvailable) { %>
-  <table><tbody>
-    <tr><th>SSH service</th><td><%= security.ssh %></td></tr>
-    <% [['port','SSH port'],['passwordauthentication','Password login'],['pubkeyauthentication','SSH key login'],['permitrootlogin','Root login'],['kbdinteractiveauthentication','Keyboard-interactive login'],['maxauthtries','Maximum authentication attempts'],['x11forwarding','X11 forwarding']].forEach(([key,label]) => { %>
-      <tr><th><%= label %></th><td><%= security.sshValues[key] || 'Unknown' %></td></tr>
-    <% }) %>
-  </tbody></table>
-  <% } else { %><p>Unable to read the effective SSH configuration. Check that OpenSSH server is installed.</p><% } %>
-  <p>For secure key-only access, first verify that your SSH key works from another terminal before disabling password login. Root login should normally be disabled. SSH changes require administrative access and a validated configuration.</p>
-</section>
-<section class="panel">
-  <p><strong>Last checked:</strong> <%= security.checkedAt %></p>
-  <p><a class="button" href="/settings/security">Refresh checks</a> <a href="/settings">Back to Settings</a></p>
+ <h2>System versions and diagnostics</h2>
+ <table><tbody>
+ <tr><th>Operating system</th><td><%= security.os %></td></tr>
+ <tr><th>Monitor version</th><td><%= security.appVersion %></td></tr>
+ <tr><th>Node.js / npm</th><td><%= security.node %> / <%= security.npm %></td></tr>
+ <tr><th>Python / SQLite</th><td><%= security.python %> / <%= security.sqlite %></td></tr>
+ <tr><th>Caddy</th><td><%= security.caddyVersion %> · <%= security.caddy %></td></tr>
+ <tr><th>Last APT update record</th><td><%= security.lastUpdate %></td></tr>
+ </tbody></table>
+ <p style="color:#94a3b8">These checks do not replace an authenticated vulnerability scanner, firewall ruleset audit or Cyber Essentials assessment.</p>
 </section>
