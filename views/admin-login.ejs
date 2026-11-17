@@ -1,0 +1,13 @@
+<%- include('partials/header', { title: 'Administrator Login' }) %>
+<section class="panel" style="max-width:520px;margin:30px auto;padding:30px">
+ <h2>Sign in to Advanced Settings</h2>
+ <p style="color:#94a3b8">Administrator access automatically locks after 15 minutes of inactivity.</p>
+ <% if (message) { %><div class="notice"><%= message %></div><% } %>
+ <form method="post" action="/settings/login" class="settings-form" style="display:flex;flex-direction:column;gap:18px">
+  <input type="hidden" name="next" value="<%= next %>">
+  <label>Username<input name="username" required autocomplete="username"></label>
+  <label>Password<input type="password" name="password" required autocomplete="current-password"></label>
+  <button class="button" type="submit">Sign In</button>
+ </form>
+ <p style="color:#94a3b8;font-size:.9rem">Use HTTPS where possible. The initial HTTP setup should be performed only on a trusted local network.</p>
+</section>
