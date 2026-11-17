@@ -20,18 +20,9 @@ router.post('/', (req, res) => {
     }
   }
   const allowed = [
-    'site_name',
-    'subnet',
     'check_interval_seconds',
     'fail_threshold',
     'recovery_threshold',
-    'smtp_host',
-    'smtp_port',
-    'smtp_secure',
-    'smtp_user',
-    'smtp_pass',
-    'alert_from',
-    'alert_to'
   ];
 
   for (const key of allowed) {
@@ -43,12 +34,12 @@ router.post('/', (req, res) => {
   res.redirect('/settings?message=' + encodeURIComponent('Settings saved. Restart the service if you changed the check interval.'));
 });
 
-router.post('/test-email', async (req, res) => {
+router.post('/advanced/test-email', requireWpPassword, async (req, res) => {
   try {
     await sendTestEmail();
-    res.redirect('/settings?message=' + encodeURIComponent('Test email sent.'));
+    res.redirect('/settings/advanced?message=' + encodeURIComponent('Test email sent.'));
   } catch (err) {
-    res.redirect('/settings?message=' + encodeURIComponent('Email failed: ' + err.message));
+    res.redirect('/settings/advanced?message=' + encodeURIComponent('Email failed: ' + err.message));
   }
 });
 
@@ -71,6 +62,33 @@ function requireWpPassword(req, res, next) {
   req.wpLogin = login.ensure();
   next();
 }
+router.get('/advanced', requireWpPassword, (req, res) => {
+  res.render('advanced-settings', { title: 'Advanced Settings', settings: getSettings(), message: req.query.message || '', mustChange: req.wpLogin.mustChange });
+});
+router.post('/advanced', requireWpPassword, (req, res) => {
+  const allowed = ['site_name','subnet','smtp_host','smtp_port','smtp_secure','smtp_user','smtp_pass','alert_from','alert_to'];
+  try {
+    const values = {};
+    for (const key of allowed) {
+      if (Object.prototype.hasOwnProperty.call(req.body, key)) values[key] = String(req.body[key]);
+    }
+    if (Object.prototype.hasOwnProperty.call(values, 'alert_to')) {
+      const recipients = parseRecipients(values.alert_to);
+      if (recipients.length > 50) throw Error('Maximum 50 alert recipients.');
+      values.alert_to = recipients.join(', ');
+    }
+    if (Object.prototype.hasOwnProperty.call(values, 'smtp_port')) {
+      const port = Number(values.smtp_port);
+      if (!Number.isInteger(port) || port < 1 || port > 65535) throw Error('Invalid SMTP port.');
+    }
+    // An empty password retains the existing SMTP password.
+    if (!values.smtp_pass) delete values.smtp_pass;
+    for (const [key, value] of Object.entries(values)) setSetting(key, value);
+    res.redirect('/settings/advanced?message=' + encodeURIComponent('Advanced settings saved.'));
+  } catch (err) {
+    res.redirect('/settings/advanced?message=' + encodeURIComponent(err.message + ' No settings were saved.'));
+  }
+});
 function renderWp(req, res, message, status = 200) {
   res.status(status).render('wordpress-settings', {
     title: 'WordPress Reporting', settings: getSettings(),
