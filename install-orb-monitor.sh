@@ -37,7 +37,7 @@ if [[ "${ANSWER,,}" == "n" ]]; then exit 0; fi
 
 echo "[1/8] Installing system dependencies..."
 sudo apt-get update
-sudo DEBIAN_FRONTEND=noninteractive apt-get install -y git curl ca-certificates build-essential python3 python3-dev make g++ sqlite3 arp-scan iputils-ping libcap2-bin
+sudo DEBIAN_FRONTEND=noninteractive apt-get install -y git curl ca-certificates build-essential python3 python3-dev make g++ sqlite3 arp-scan iputils-ping libcap2-bin unattended-upgrades
 
 echo "[2/8] Checking Node.js..."
 NODE_MAJOR=0
@@ -99,7 +99,9 @@ if systemctl list-unit-files orb-pi-reporter.timer --no-legend 2>/dev/null | gre
 fi
 
 
-echo "[5/8] Setting 10-second monitoring defaults..."
+echo "[5/8] Initialising monitoring defaults..."
+# Do not overwrite settings chosen in the dashboard on subsequent installer runs.
+if [ ! -f data/.orb-defaults-initialized ]; then
 # The application must support intervals below 15 seconds; this is included in the repository version.
 node - <<'NODE'
 const { init, setSetting } = require('./services/db');
@@ -109,6 +111,15 @@ setSetting('fail_threshold', '2');
 setSetting('recovery_threshold', '2');
 console.log('Configured interval=10s, failures=2, recovery=2');
 NODE
+  touch data/.orb-defaults-initialized
+fi
+
+echo "Enabling automatic OS security updates..."
+sudo tee /etc/apt/apt.conf.d/20auto-upgrades >/dev/null <<'AUTO'
+APT::Periodic::Update-Package-Lists "1";
+APT::Periodic::Unattended-Upgrade "1";
+AUTO
+sudo systemctl enable --now apt-daily.timer apt-daily-upgrade.timer || true
 
 echo "[6/8] Enabling local ARP discovery..."
 ARP_BIN="$(command -v arp-scan)"
@@ -158,4 +169,6 @@ echo "Logs: sudo journalctl -u pi-network-monitor -f"
 echo
 echo "Configure or change WordPress from the Pi dashboard: Settings > Configure WordPress Reporting"
 echo "Fresh login: pimon / pimon (must be changed on first use). Existing changed login is retained."
+echo "Optional HTTPS setup: cd /opt/pi-network-monitor && bash setup-https.sh"
+echo "Security status: /settings/security (WordPress settings login required)"
 echo "Installation finished."
