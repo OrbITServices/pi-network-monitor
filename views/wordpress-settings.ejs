@@ -1,0 +1,19 @@
+<%- include('partials/header', { title: 'WordPress Reporting' }) %>
+<% if (message) { %><div class="notice"><%= message %></div><% } %>
+<section class="panel">
+  <h2>WordPress reporting</h2>
+  <p>Connect this Pi to the Orb Monitor Hub plugin. This changes only the reporting destination, not your local monitored devices.</p>
+  <form method="post" action="/settings/wordpress" class="settings-form">
+    <label>WordPress website URL<input name="wordpress_url" type="url" required placeholder="https://orbitserv.co.uk" value="<%= wp.wordpress_url %>"></label>
+    <label>Site key<input name="site_key" required pattern="[a-z0-9_-]+" value="<%= wp.site_key %>"></label>
+    <label>API key<input name="api_key" type="password" autocomplete="new-password" placeholder="<%= wp.configured ? 'Leave blank to keep existing key' : 'Paste API key from WordPress' %>"></label>
+    <p><strong>Connection:</strong> <%= wp.configured ? 'Configured' : 'Not configured' %></p>
+    <p><strong>Last result:</strong> <%= wp.lastResult.status %><% if (wp.lastResult.at) { %> (<%= wp.lastResult.at %>)<% } %></p>
+    <p>Reporting automatically runs every 60 seconds when configured. Credentials are not displayed after saving.</p>
+    <button class="button" type="submit">Save WordPress Configuration</button>
+  </form>
+  <form method="post" action="/settings/wordpress/test" class="test-email">
+    <button class="button secondary" type="submit">Test Connection / Send Now</button>
+  </form>
+  <p><a href="/settings">Back to Settings</a></p>
+</section>
