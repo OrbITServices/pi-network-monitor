@@ -1,4 +1,5 @@
 <%- include('partials/header', { title: 'WordPress Reporting' }) %>
+<form method="post" action="/settings/logout" style="text-align:right;margin-bottom:14px"><button class="button secondary" type="submit">Log Out</button></form>
 <% if (message) { %><div class="notice"><%= message %></div><% } %>
 <section class="panel">
   <h2>Change Login Details</h2>
