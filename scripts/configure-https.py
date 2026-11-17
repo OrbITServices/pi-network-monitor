@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Restricted root-only HTTPS configuration helper, invoked by the monitor's sudoers rule."""
-import os, sys, re, subprocess, pathlib, shutil, tempfile, datetime
+import os, sys, re, subprocess, pathlib, shutil, tempfile, datetime, grp
 BASE=pathlib.Path('/etc/caddy')
 CONFIG=BASE/'Caddyfile'
 def run(args):
@@ -44,6 +44,8 @@ def main():
         if CONFIG.exists():
             backup=BASE/('Caddyfile.orb-backup-'+datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%d%H%M%S'))
             shutil.copy2(CONFIG,backup)
+        os.chown(staged, 0, grp.getgrnam('caddy').gr_gid)
+        os.chmod(staged, 0o640)
         os.replace(staged,CONFIG)
         try:
             run(['/usr/bin/systemctl','enable','--now','caddy'])
