@@ -2,6 +2,9 @@ node_modules/
 .env
 data/*.db
 data/*.sqlite
+data/*.db-*
+data/*.sqlite-*
+orb-reporter.json
 logs/
 *.log
 .DS_Store
