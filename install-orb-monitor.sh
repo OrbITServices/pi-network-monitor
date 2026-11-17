@@ -37,7 +37,7 @@ if [[ "${ANSWER,,}" == "n" ]]; then exit 0; fi
 
 echo "[1/8] Installing system dependencies..."
 sudo apt-get update
-sudo DEBIAN_FRONTEND=noninteractive apt-get install -y git curl ca-certificates build-essential python3 python3-dev make g++ sqlite3 arp-scan iputils-ping libcap2-bin unattended-upgrades caddy
+sudo DEBIAN_FRONTEND=noninteractive apt-get install -y git curl ca-certificates build-essential python3 python3-dev make g++ sqlite3 arp-scan iputils-ping libcap2-bin unattended-upgrades caddy ufw
 
 echo "[2/8] Checking Node.js..."
 NODE_MAJOR=0
@@ -122,6 +122,21 @@ APT::Periodic::Update-Package-Lists "1";
 APT::Periodic::Unattended-Upgrade "1";
 AUTO
 sudo systemctl enable --now apt-daily.timer apt-daily-upgrade.timer || true
+
+echo "Configuring UFW safely..."
+# UFW is installed on fresh and existing installations. Never reset existing rules.
+# Only enable automatically when no custom inbound services are detected.
+if command -v ufw >/dev/null 2>&1; then
+  UFW_STATUS="$(sudo ufw status 2>/dev/null | head -n 1 || true)"
+  if [[ "$UFW_STATUS" == "Status: active" ]]; then
+    echo "UFW already active; preserving existing rules and policies."
+  else
+    echo "UFW installed but not active. Leaving it disabled to avoid disrupting SSH or other services."
+    echo "After reviewing inbound services, allow your SSH port and ports 80/443, then enable UFW."
+  fi
+else
+  echo "Warning: UFW installation could not be verified."
+fi
 
 echo "[6/8] Enabling local ARP discovery..."
 ARP_BIN="$(command -v arp-scan)"
