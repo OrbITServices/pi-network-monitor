@@ -35,9 +35,9 @@ router.post('/', (req, res) => {
 router.post('/advanced/test-email', requireWpPassword, async (req, res) => {
   try {
     await sendTestEmail();
-    res.redirect('/settings/advanced?message=' + encodeURIComponent('Test email sent.'));
+    res.redirect('/settings/advanced?message=' + encodeURIComponent('Test email sent.') + '#email');
   } catch (err) {
-    res.redirect('/settings/advanced?message=' + encodeURIComponent('Email failed: ' + err.message));
+    res.redirect('/settings/advanced?message=' + encodeURIComponent('Email failed: ' + err.message) + '#email');
   }
 });
 
@@ -82,9 +82,11 @@ router.post('/advanced', requireWpPassword, (req, res) => {
     // An empty password retains the existing SMTP password.
     if (!values.smtp_pass) delete values.smtp_pass;
     for (const [key, value] of Object.entries(values)) setSetting(key, value);
-    res.redirect('/settings/advanced?message=' + encodeURIComponent('Advanced settings saved.'));
+    const section = req.body.section === 'email' ? 'email' : 'network';
+    res.redirect('/settings/advanced?message=' + encodeURIComponent('Advanced settings saved.') + '#' + section);
   } catch (err) {
-    res.redirect('/settings/advanced?message=' + encodeURIComponent(err.message + ' No settings were saved.'));
+    const section = req.body.section === 'email' ? 'email' : 'network';
+    res.redirect('/settings/advanced?message=' + encodeURIComponent(err.message + ' No settings were saved.') + '#' + section);
   }
 });
 router.post('/advanced/https', requireWpPassword, (req, res) => {
