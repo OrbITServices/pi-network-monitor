@@ -1,5 +1,6 @@
 const fs=require('fs');
 const os=require('os');
+const https=require('https');
 const {execFile}=require('child_process');
 const {promisify}=require('util');
 const {getSettings}=require('./db');
@@ -30,8 +31,27 @@ async function scan(){
  add('pending','Updates','Pending package upgrades',n===null?'orange':n===0?'green':'orange',n===null?'Could not read cached APT list':n+' package(s) pending','Run apt update and review/install upgrades. Cached lists may be stale.');
  add('reboot','Updates','Reboot required',fs.existsSync('/var/run/reboot-required')?'orange':'green',fs.existsSync('/var/run/reboot-required')?'Yes':'No','Schedule a reboot after checking running services.');
  const caddy=await cmd('/usr/bin/systemctl',['is-active','caddy']);
- const cfg=read('/etc/caddy/Caddyfile');
- add('https','Web security','HTTPS reverse proxy',caddy==='active'&&cfg.includes('reverse_proxy')?'green':'orange',caddy||'Caddy not running','Configure HTTPS in Advanced Settings.');
+ // Verify the actual HTTPS proxy without needing read access to the root-owned Caddyfile.
+ const httpsHost=os.hostname().toLowerCase()+'.local';
+ const httpsCheck=await new Promise(resolve=>{
+   const req=https.get({hostname:'127.0.0.1',port:443,path:'/health',
+     servername:httpsHost,rejectUnauthorized:false,timeout:4000,
+     headers:{Host:httpsHost}},res=>{
+       let body='';
+       res.on('data',chunk=>{if(body.length<4096)body+=chunk.toString()});
+       res.on('end',()=>{try{
+         const health=JSON.parse(body);
+         resolve(res.statusCode===200&&health.ok===true&&typeof health.app==='string');
+       }catch{resolve(false)}});
+     });
+   req.on('timeout',()=>req.destroy(new Error('HTTPS timeout')));
+   req.on('error',()=>resolve(false));
+ });
+ add('https','Web security','HTTPS reverse proxy',
+   caddy==='active'&&httpsCheck?'green':'orange',
+   caddy==='active'?(httpsCheck?'Active; HTTPS /health check passed':'Active; HTTPS /health check failed'):(caddy||'Caddy not running'),
+   'Check HTTPS configuration in Advanced Settings and verify port 443 is reachable.');
+
  const listeners=await cmd('/usr/bin/ss',['-tlnH']);
  const public3000=listeners?.split('\n').some(x=>/\s(?:0\.0\.0\.0|\[::\]|\*):3000\s/.test(x));
  add('port3000','Web security','HTTP port 3000 exposed on all interfaces',listeners===null?'orange':public3000?'red':'green',listeners===null?'Cannot inspect listeners':public3000?'Port 3000 bound to all interfaces':'No all-interface port 3000 listener detected','Bind Node to 127.0.0.1 once HTTPS is verified, or restrict port 3000 by firewall.');
