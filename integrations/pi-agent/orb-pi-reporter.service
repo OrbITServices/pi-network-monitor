@@ -1,0 +1,12 @@
+[Unit]
+Description=Orb Pi Monitor outbound WordPress reporter
+After=network-online.target pi-network-monitor.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=wallboard
+WorkingDirectory=/opt/pi-network-monitor
+ExecStart=/usr/bin/python3 /opt/pi-network-monitor/orb_reporter.py
+NoNewPrivileges=true
+PrivateTmp=true
