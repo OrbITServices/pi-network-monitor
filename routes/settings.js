@@ -140,10 +140,27 @@ router.post('/wordpress/test', requireWpPassword, async (req, res) => {
   const result = await wordpress.send();
   res.redirect('/settings/wordpress?message=' + encodeURIComponent(result.status));
 });
+router.post('/security/alerts',requireWpPassword,(req,res)=>{
+  const hours=Number(req.body.hours);
+  if(!Number.isInteger(hours)||hours<1||hours>168||!['red','orange'].includes(req.body.level)) return res.redirect('/settings/security?message='+encodeURIComponent('Invalid schedule or alert severity.'));
+  setSetting('security_alert_enabled',req.body.enabled==='on'?'true':'false');
+  setSetting('security_alert_hours',String(hours));
+  setSetting('security_alert_level',req.body.level);
+  setSetting('security_alert_changes_only',req.body.changes_only==='on'?'true':'false');
+  res.redirect('/settings/security?message='+encodeURIComponent('Security alert schedule saved.'));
+});
+router.post('/security/test-alert',requireWpPassword,async(req,res)=>{
+  try{
+    const result=await require('../services/security-alerts').runNow({test:true});
+    res.redirect('/settings/security?message='+encodeURIComponent(result.sent?'Security test email sent.':'No email sent.'));
+  }catch(e){res.redirect('/settings/security?message='+encodeURIComponent('Security test failed: '+e.message));}
+});
 router.get('/security', requireWpPassword, async (req, res) => {
   try {
     const security = await require('../services/security-status').status();
-    res.render('security', { title: 'Security Status', settings: getSettings(), security });
+    const audit=await require('../services/security-audit').scan();
+    const alerts=require('../services/security-alerts').state();
+    res.render('security', { title: 'Security Status', settings: getSettings(), security, audit, alerts, message:req.query.message||'' });
   } catch (err) {
     res.status(500).send('Security checks unavailable.');
   }
