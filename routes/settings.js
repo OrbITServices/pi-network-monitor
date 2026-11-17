@@ -107,7 +107,7 @@ router.post('/advanced/https', requireWpPassword, (req, res) => {
   }
   execFile('/usr/bin/sudo', ['-n','/usr/local/libexec/orb-monitor/configure-https.py', mode, hostname],
     { timeout: 65000, maxBuffer: 20000 }, (err, stdout, stderr) => {
-      const msg = err ? 'HTTPS configuration failed: ' + String(stderr || err.message).slice(0, 350)
+      const msg = err ? 'HTTPS configuration failed: ' + String(stderr || err.message).trim().slice(-1200)
                       : 'HTTPS proxy configured for https://' + hostname + '. ' + String(stdout).slice(0, 200);
       res.redirect('/settings/advanced?message=' + encodeURIComponent(msg) + '#https');
     });
