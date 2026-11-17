@@ -1,0 +1,18 @@
+<%- include('partials/header', { title: 'Security Status' }) %>
+<section class="panel">
+  <h2>Security Status</h2>
+  <p>Read-only checks from this Raspberry Pi. These checks support maintenance but do not certify Cyber Essentials compliance.</p>
+  <table><tbody>
+    <tr><th>Operating system</th><td><%= security.os %></td></tr>
+    <tr><th>Node.js</th><td><%= security.node %></td></tr>
+    <tr><th>Caddy HTTPS service</th><td><%= security.caddy %></td></tr>
+    <tr><th>Automatic OS security updates</th><td><%= security.unattended ? 'Package installed (policy not verified)' : 'Not installed' %></td></tr>
+    <tr><th>Pending APT upgrades (cached)</th><td><%= security.pending %></td></tr>
+    <tr><th>Reboot required</th><td><%= security.reboot ? 'Yes' : 'No' %></td></tr>
+    <tr><th>SSH service</th><td><%= security.ssh %></td></tr>
+    <tr><th>UFW firewall service</th><td><%= security.firewall %></td></tr>
+    <tr><th>Last checked</th><td><%= security.checkedAt %></td></tr>
+  </tbody></table>
+  <p>Certificate trust, expiry, firewall rules, update age, package vulnerabilities and SSH hardening need separate verification.</p>
+  <p><a class="button" href="/settings/security">Refresh checks</a> <a href="/settings">Back to Settings</a></p>
+</section>
