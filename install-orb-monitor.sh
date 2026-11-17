@@ -37,7 +37,7 @@ if [[ "${ANSWER,,}" == "n" ]]; then exit 0; fi
 
 echo "[1/8] Installing system dependencies..."
 sudo apt-get update
-sudo DEBIAN_FRONTEND=noninteractive apt-get install -y git curl ca-certificates build-essential python3 python3-dev make g++ sqlite3 arp-scan iputils-ping libcap2-bin unattended-upgrades
+sudo DEBIAN_FRONTEND=noninteractive apt-get install -y git curl ca-certificates build-essential python3 python3-dev make g++ sqlite3 arp-scan iputils-ping libcap2-bin unattended-upgrades caddy
 
 echo "[2/8] Checking Node.js..."
 NODE_MAJOR=0
