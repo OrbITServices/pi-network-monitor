@@ -2,7 +2,7 @@
 
 This repository contains the original Pi Network Monitor (Node.js) in the root.
 
-- `wordpress/orb-monitor-hub/orb-monitor-hub.php` — WordPress receiver plugin v0.1.0.
+- `wordpress/orb-monitor-hub/orb-monitor-hub.php` — WordPress receiver plugin v0.2.0.
 - `integrations/pi-agent/` — optional Python reporter and systemd timer.
 
 ## WordPress
@@ -23,3 +23,11 @@ The installer prompts for the HTTPS WordPress URL, site key and API key, then en
 The reporter reads the existing SQLite database without modifying it. It does not alter local monitoring frequency. The original `main` branch monitor still enforces a minimum 15-second interval and uses the original IP-only database schema. These need separate tested changes for 10-second critical monitoring and MAC-first support.
 
 **Status:** Initial integration, not production-validated. Do not rely on WordPress alone for critical outage alerting. The timer reports every minute and WordPress events are inferred from successive snapshots; short outages may be missed centrally.
+
+## WordPress v0.2.0: custom alert emails and wallboard sharing
+
+Under **Orb Monitor → Alerts & Wallboard**, enter one or more recipient email addresses (one per line or separated by commas). On the main **Orb Monitor** page, enable email notifications. WordPress must have working outbound mail (SMTP recommended). A site reports state changes through its Pi reporter; the current one-minute polling can miss short outages.
+
+From **Alerts & Wallboard**, generate an expiring private read-only wallboard link (1–365 days), rotate it or revoke it. The link is a bearer secret and reveals device names and IP addresses to anyone holding it. It refreshes every 30 seconds. No login is required for holders of the link; keep it confidential. This is not a substitute for a fully authenticated client portal.
+
+The plugin is source-controlled here but has **not yet been validated on a live WordPress installation**. Test on staging before production.
