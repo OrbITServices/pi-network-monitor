@@ -180,7 +180,7 @@ sudo visudo -cf /etc/sudoers.d/orb-monitor-https
 
 echo "Installing restricted read-only security inspection helper..."
 sudo install -o root -g root -m 755 scripts/security-readonly.py /usr/local/libexec/orb-monitor/security-readonly.py
-printf '%s ALL=(root) NOPASSWD: /usr/local/libexec/orb-monitor/security-readonly.py\\n' "$APP_USER" | sudo tee /etc/sudoers.d/orb-monitor-security >/dev/null
+printf '%s ALL=(root) NOPASSWD: /usr/local/libexec/orb-monitor/security-readonly.py\n' "$APP_USER" | sudo tee /etc/sudoers.d/orb-monitor-security >/dev/null
 sudo chmod 440 /etc/sudoers.d/orb-monitor-security
 sudo visudo -cf /etc/sudoers.d/orb-monitor-security
 
