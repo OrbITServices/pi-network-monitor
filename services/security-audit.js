@@ -11,7 +11,12 @@ const check=(id,group,label,level,detail,advice)=>({id,group,label,level,detail:
 async function scan(){
  const checks=[],add=(...a)=>checks.push(check(...a));
  const settings=getSettings();
- const ssh=await cmd('/usr/sbin/sshd',['-T']);
+ // sshd -T may require elevated permissions to inspect host keys.
+ // Preserve the actual failure rather than reporting four unexplained unknowns.
+ let sshError='';
+ let ssh=null;
+ try { ssh=(await run('/usr/sbin/sshd',['-T'],{timeout:8000,maxBuffer:200000})).stdout.trim(); }
+ catch(e) { sshError=(e.stderr||e.message||'sshd -T failed').trim().split('\n').slice(-2).join(' | ').slice(0,250); }
  const sshMap={};if(ssh)for(const line of ssh.split('\n')){const [k,...v]=line.split(' ');sshMap[k]=v.join(' ')}
  const sshActive=await cmd('/usr/bin/systemctl',['is-active','ssh']);
  add('ssh','Remote access','SSH service',sshActive==='active'?'green':sshActive==='inactive'?'orange':'orange',sshActive||'Unknown','If SSH is required, confirm the service is running.');
@@ -20,7 +25,7 @@ async function scan(){
   ['passwordauthentication','SSH password authentication',['no'],'Use SSH keys and verify access before disabling passwords.'],
   ['kbdinteractiveauthentication','Keyboard-interactive SSH login',['no'],'Disable keyboard-interactive authentication if not required.'],
   ['x11forwarding','SSH X11 forwarding',['no'],'Disable X11 forwarding if unused.']]){
-   const v=sshMap[id];add(id,'Remote access',label,!ssh?'orange':!v?'orange':expected.includes(v)?'green':'orange',v||'Unable to determine',advice);
+   const v=sshMap[id];add(id,'Remote access',label,!ssh?'orange':!v?'orange':expected.includes(v)?'green':'orange',v||('Unable to determine: '+(sshError||'sshd returned no value')),advice);
  }
  const auto=read('/etc/apt/apt.conf.d/20auto-upgrades');
  const upgrades=await cmd('/usr/bin/dpkg-query',['-W','-f=${Status}','unattended-upgrades']);
@@ -57,8 +62,12 @@ async function scan(){
  add('port3000','Web security','HTTP port 3000 exposed on all interfaces',listeners===null?'orange':public3000?'red':'green',listeners===null?'Cannot inspect listeners':public3000?'Port 3000 bound to all interfaces':'No all-interface port 3000 listener detected','Bind Node to 127.0.0.1 once HTTPS is verified, or restrict port 3000 by firewall.');
  const login=require('./wp-login').ensure();
  add('adminpass','Web security','Default administrator password',login.mustChange?'red':'green',login.mustChange?'Default credentials still enabled':'Changed','Change administrator credentials under WordPress Settings.');
- const fw=await cmd('/usr/bin/systemctl',['is-active','ufw']);
- add('firewall','Network','UFW firewall',fw==='active'?'green':'orange',fw||'Unavailable','Confirm network firewall rules; UFW is not the only possible firewall.');
+ const fwInstalled=fs.existsSync('/usr/sbin/ufw');
+ const fw=fwInstalled?await cmd('/usr/bin/systemctl',['is-active','ufw']):null;
+ add('firewall','Network','UFW firewall',
+   fw==='active'?'green':'orange',
+   !fwInstalled?'UFW not installed; other firewall mechanisms not assessed':fw==='active'?'UFW service active; firewall rules not verified':'UFW service '+(fw||'unknown')+'; firewall rules not verified',
+   'Check effective firewall rules with sudo ufw status verbose or sudo nft list ruleset. Service state alone does not establish protection.');
  const net=await cmd('/usr/bin/ss',['-tlnH']);
  add('listeners','Network','Listening TCP services',net===null?'orange':'green',net===null?'Unable to inspect':'Listening ports inspected','Review listening services and restrict unnecessary access.');
  const disk=fs.statfsSync?(()=>{try{const s=fs.statfsSync('/');return Math.round((1-s.bavail/s.blocks)*100)}catch{return null}})():null;
