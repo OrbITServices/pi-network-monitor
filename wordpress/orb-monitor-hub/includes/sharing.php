@@ -11,10 +11,6 @@ final class Orb_Monitor_Sharing {
     const OPTION_EXPIRES = 'orbmon_share_expires';
 
     public static function init() {
-        add_action('admin_menu', function () {
-            add_submenu_page('orb-monitor', 'Alerts & Wallboard', 'Alerts & Wallboard', 'manage_options',
-                'orb-monitor-sharing', array(__CLASS__, 'settings_page'));
-        });
         add_action('template_redirect', array(__CLASS__, 'maybe_wallboard'), 0);
     }
 
