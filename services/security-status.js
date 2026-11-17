@@ -13,7 +13,7 @@ function aptConfig(key) {
   for (const file of files.reverse()) {
     const lines = read(file).split('\n').filter(line => !/^\s*(#|\/\/)/.test(line));
     for (const line of lines.reverse()) {
-      const m = line.match(new RegExp('^\\s*' + key.replace(/[.*+?^$()|[\]{}]/g, '\\$&') + '\\s+"([^"]+)"'));
+      const m = line.match(new RegExp('^\\s*' + key.replace(/:/g, '\\:') + '\\s+"([^"]+)"'));
       if (m) return m[1];
     }
   }
