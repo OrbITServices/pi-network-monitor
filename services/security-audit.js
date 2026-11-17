@@ -62,12 +62,17 @@ async function scan(){
  add('port3000','Web security','HTTP port 3000 exposed on all interfaces',listeners===null?'orange':public3000?'red':'green',listeners===null?'Cannot inspect listeners':public3000?'Port 3000 bound to all interfaces':'No all-interface port 3000 listener detected','Bind Node to 127.0.0.1 once HTTPS is verified, or restrict port 3000 by firewall.');
  const login=require('./wp-login').ensure();
  add('adminpass','Web security','Default administrator password',login.mustChange?'red':'green',login.mustChange?'Default credentials still enabled':'Changed','Change administrator credentials under WordPress Settings.');
- const fwInstalled=fs.existsSync('/usr/sbin/ufw');
- const fw=fwInstalled?await cmd('/usr/bin/systemctl',['is-active','ufw']):null;
+ // UFW is a oneshot service: inactive (dead) is normal even with rules enabled.
+ // Read the firewall's configured state without sudo, since status requires root.
+ const ufwConfig=read('/etc/ufw/ufw.conf');
+ const ufwDefault=read('/etc/default/ufw');
+ const ufwEnabled=/^ENABLED=yes\\s*$/m.test(ufwConfig);
+ const ufwInstalled=fs.existsSync('/usr/sbin/ufw');
+ const ufwPolicy=(ufwDefault.match(/^DEFAULT_INPUT_POLICY="?(\\w+)"?/m)||[])[1];
  add('firewall','Network','UFW firewall',
-   fw==='active'?'green':'orange',
-   !fwInstalled?'UFW not installed; other firewall mechanisms not assessed':fw==='active'?'UFW service active; firewall rules not verified':'UFW service '+(fw||'unknown')+'; firewall rules not verified',
-   'Check effective firewall rules with sudo ufw status verbose or sudo nft list ruleset. Service state alone does not establish protection.');
+   !ufwInstalled?'orange':!ufwConfig?'orange':ufwEnabled&&ufwPolicy==='DROP'?'green':'orange',
+   !ufwInstalled?'UFW not installed':!ufwConfig?'UFW configuration not readable':ufwEnabled?'UFW enabled; incoming default '+(ufwPolicy||'unknown')+' (effective rules not verified)':'UFW disabled in configuration',
+   'Verify effective firewall rules with sudo ufw status verbose.');
  const net=await cmd('/usr/bin/ss',['-tlnH']);
  add('listeners','Network','Listening TCP services',net===null?'orange':'green',net===null?'Unable to inspect':'Listening ports inspected','Review listening services and restrict unnecessary access.');
  const disk=fs.statfsSync?(()=>{try{const s=fs.statfsSync('/');return Math.round((1-s.bavail/s.blocks)*100)}catch{return null}})():null;
