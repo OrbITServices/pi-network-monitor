@@ -10,15 +10,6 @@ router.get('/', (req, res) => {
 });
 
 router.post('/', (req, res) => {
-  if (Object.prototype.hasOwnProperty.call(req.body, 'alert_to')) {
-    try {
-      const recipients = parseRecipients(req.body.alert_to);
-      if (recipients.length > 50) throw Error('Maximum 50 alert recipients.');
-      req.body.alert_to = recipients.join(', ');
-    } catch (err) {
-      return res.redirect('/settings?message=' + encodeURIComponent(err.message + ' No settings were saved.'));
-    }
-  }
   const allowed = [
     'check_interval_seconds',
     'fail_threshold',
@@ -27,8 +18,14 @@ router.post('/', (req, res) => {
 
   for (const key of allowed) {
     if (Object.prototype.hasOwnProperty.call(req.body, key)) {
-      setSetting(key, req.body[key]);
+      const value = Number(req.body[key]);
+      if (!Number.isInteger(value) || value < 1 || value > 3600) {
+        return res.redirect('/settings?message=' + encodeURIComponent('Monitoring values must be whole numbers between 1 and 3600.'));
+      }
     }
+  }
+  for (const key of allowed) {
+    if (Object.prototype.hasOwnProperty.call(req.body, key)) setSetting(key, String(req.body[key]));
   }
 
   res.redirect('/settings?message=' + encodeURIComponent('Settings saved. Restart the service if you changed the check interval.'));
