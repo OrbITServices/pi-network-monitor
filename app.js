@@ -29,6 +29,7 @@ app.get('/health', (req, res) => {
 });
 
 monitor.start();
+require('./services/wordpress-reporting').start();
 
 app.listen(PORT, () => {
   console.log(`${process.env.APP_NAME || 'Pi Network Monitor'} running on port ${PORT}`);
