@@ -1,0 +1,41 @@
+<%- include('partials/header', { title: 'Advanced Settings' }) %>
+<div class="advanced-intro"><div><h2>Advanced Configuration</h2><p>Protected administration for network identity, email alerts, integrations and security.</p></div><span class="advanced-lock">🔒 Administrator access</span></div>
+<% if (message) { %><div class="notice"><%= message %></div><% } %>
+<% if (mustChange) { %><div class="notice">The default administrator password is still in use. <a href="/settings/wordpress">Change it before using this interface on an untrusted network.</a></div><% } %>
+<div class="advanced-grid">
+  <a class="advanced-tile" href="/settings/wordpress"><strong>WordPress Reporting</strong><span>API credentials, reporting frequency and administrator password</span></a>
+  <a class="advanced-tile" href="/settings/security"><strong>Security & Versions</strong><span>SSH checks, operating system updates and software versions</span></a>
+  <a class="advanced-tile" href="#https"><strong>HTTPS & Certificates</strong><span>Internal CA, Let's Encrypt or manual certificates</span></a>
+  <a class="advanced-tile" href="#network"><strong>Network & Email</strong><span>Site identity, subnet and alert delivery</span></a>
+</div>
+<section class="panel" id="network">
+  <h2>Network & Email Configuration</h2>
+  <form method="post" action="/settings/advanced" class="settings-form">
+    <h3>Network identity</h3>
+    <label>Site Name<input name="site_name" value="<%= settings.site_name || '' %>"></label>
+    <p class="description">Friendly location name included in alert emails.</p>
+    <label>Subnet<input name="subnet" value="<%= settings.subnet || '' %>"></label>
+    <p class="description">For reference, e.g. 192.168.1.0/24. ARP discovery uses the Pi's local interface, not other VLANs.</p>
+    <h3>SMTP alerts</h3>
+    <label>SMTP Host<input name="smtp_host" value="<%= settings.smtp_host || '' %>"></label>
+    <label>SMTP Port<input name="smtp_port" type="number" min="1" max="65535" value="<%= settings.smtp_port || '587' %>"></label>
+    <label>SMTP encryption<select name="smtp_secure"><option value="false" <%= settings.smtp_secure !== 'true' ? 'selected' : '' %>>STARTTLS (typically 587)</option><option value="true" <%= settings.smtp_secure === 'true' ? 'selected' : '' %>>TLS on connection (typically 465)</option></select></label>
+    <label>SMTP Username<input name="smtp_user" value="<%= settings.smtp_user || '' %>"></label>
+    <label>SMTP Password<input type="password" name="smtp_pass" autocomplete="new-password" placeholder="Leave blank to keep current password"></label>
+    <label>Alert From<input name="alert_from" value="<%= settings.alert_from || '' %>"></label>
+    <label>Alert To — Recipients<textarea name="alert_to" rows="4" placeholder="alerts@example.com&#10;support@example.com"><%= (settings.alert_to || '').replace(/[,;]\s*/g, '\n') %></textarea></label>
+    <p class="description">One address per line, or separate addresses with commas or semicolons.</p>
+    <button class="button" type="submit">Save Network & Email Settings</button>
+  </form>
+  <form method="post" action="/settings/advanced/test-email"><button class="button secondary" type="submit">Send Test Email</button></form>
+</section>
+<section class="panel" id="https">
+  <h2>HTTPS & Certificates</h2>
+  <p>HTTPS is currently configured using the Pi's <code>setup-https.sh</code> script. The dashboard certificate installer is not yet available; certificate changes need privileged system access and safe rollback.</p>
+  <p>Supported script modes: internal <code>.local</code> CA, public-domain Let's Encrypt HTTP-01, and manually supplied PEM certificates. DNS-01 for internal-only public domains requires a provider integration.</p>
+  <pre>cd /opt/pi-network-monitor
+bash setup-https.sh</pre>
+</section>
+<style>
+.advanced-intro{display:flex;justify-content:space-between;align-items:center;gap:1rem;margin:0 0 1.5rem;flex-wrap:wrap}.advanced-intro h2{margin:0 0 .35rem}.advanced-intro p{margin:0;color:#64748b}.advanced-lock{background:#eaf4ff;color:#1253a1;border-radius:99px;padding:.55rem .9rem;font-size:.85rem;font-weight:700}.advanced-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;margin:0 0 1.5rem}.advanced-tile{display:flex;flex-direction:column;gap:.65rem;padding:1.3rem;border:1px solid #dce4ef;border-radius:14px;background:#fff;text-decoration:none;color:#172b4d;box-shadow:0 5px 18px #14233c0a;transition:transform .15s,border-color .15s}.advanced-tile:hover{transform:translateY(-2px);border-color:#3885d4}.advanced-tile span{color:#65758b;font-size:.9rem;line-height:1.5}.advanced-tile strong{font-size:1.05rem}#network,#https{scroll-margin-top:20px}
+</style>
